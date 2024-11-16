@@ -1,16 +1,22 @@
+#include <winsock2.h> // 윈속2 메인 헤더
+#include <ws2tcpip.h> // 윈속2 확장 헤더
+
 #include <windows.h>
 #include <gdiplus.h>
 #include <tchar.h>
 #include <mmsystem.h>
 #include <vector>
 #include <algorithm>
+
 #include "Fighter.h"
 #include "Enemy.h"
 #include "AdvancedEnemy.h"
 #include "Bullet.h"
+#include "err.h"
 
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "ws2_32") 
 
 using namespace Gdiplus;
 
@@ -22,9 +28,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
 const int winWidth = 700;
 const int winHeight = 800;
+#define SERVERPORT 9000
+#define BUFSIZE    512
+char buf[BUFSIZE + 1];
+char* SERVERIP = (char*)"192.168.219.101";
+SOCKET sock;
 
 ULONG_PTR gdiplusToken;
 Fighter* playerFighter = nullptr;
+Fighter* anotherplayerFighter = nullptr;
 std::vector<Bullet*> bullets;
 std::vector<Enemy*> enemies;
 Image* lifeImage = nullptr;
@@ -50,10 +62,10 @@ void PlayBGM(LPCWSTR bgmFilePath)
     mciSendString(L"play bgm repeat", NULL, 0, NULL);
 }
 
-void UpdatePlayerFighter()
+void UpdatePlayerFighter(HWND hWnd)
 {
     if (playerFighter == nullptr) return;
-
+    if (GetForegroundWindow() != hWnd) return;
     if (GetAsyncKeyState(VK_LEFT) & 0x8000)
     {
         playerFighter->Move(-10, 0);
@@ -199,6 +211,96 @@ void CheckCollisions(HWND hWnd)
         }), enemies.end());
 }
 
+void InitSocket()
+{
+    int retval;
+    // 윈속 초기화
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+        exit(0);
+
+    // 소켓 생성
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock == INVALID_SOCKET) {
+        MessageBoxA(NULL, "소켓 생성 실패", "오류", MB_OK | MB_ICONERROR);
+        WSACleanup();
+        exit(1);
+    }
+    
+
+
+    // connect()
+    struct sockaddr_in serveraddr;
+    memset(&serveraddr, 0, sizeof(serveraddr));
+    serveraddr.sin_family = AF_INET;
+    inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
+    serveraddr.sin_port = htons(SERVERPORT);
+    retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
+    if (retval == SOCKET_ERROR) err_quit("connect()");
+
+    // 데이터 통신에 사용할 변수
+    buf[BUFSIZE];
+}
+
+struct CS_MOVE_PLAYER { Fighter& player; };
+void PlayerMove(Fighter& player)
+{
+    int xy[2];
+    xy[0] = player.GetX();
+    xy[1] = player.GetY();
+
+    int retval, len;
+
+    len = sizeof(xy);
+   
+    if (sock == INVALID_SOCKET) {
+        MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
+        return;
+    }
+    retval = send(sock, (char*)&len, sizeof(int), 0);
+
+    if (retval == SOCKET_ERROR)
+    {
+
+        err_display("send()");
+        return;
+    }
+
+    retval = send(sock, (const char*)xy, len, 0);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("send()");
+        return;
+    }
+}
+void recv_PlayerMove()
+{
+    int xy[2];
+    int retval,len;
+
+    retval = recv(sock, (char*)&len, sizeof(int), MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+
+    retval = recv(sock, (char*)xy, len, MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+
+    anotherplayerFighter->SetX(xy[0]);
+    anotherplayerFighter->SetY(xy[1]);
+}
+
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
     HWND hWnd;
@@ -239,11 +341,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
     }
     playerFighter->SetBoundary(0, 0, winWidth, winHeight); // 창 크기에 맞게 경계 설정
 
+
+    anotherplayerFighter = new Fighter(225, 300, L"resource\\image\\fighter.png");
+    if (!playerFighter) {
+        MessageBox(hWnd, L"Player fighter initialization failed!", L"Error", MB_OK);
+        PostQuitMessage(0);
+    }
+    anotherplayerFighter->SetBoundary(0, 0, winWidth, winHeight); // 창 크기에 맞게 경계 설정
+
     // 적 객체 초기 생성
     CreateEnemy();
 
     SetTimer(hWnd, 1, 50, NULL);
     SetTimer(hWnd, 2, 1000, NULL);
+
+    InitSocket();
 
     while (GetMessage(&Message, NULL, 0, 0))
     {
@@ -376,12 +488,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
         if (wParam == 1)
         {
+            PlayerMove(*playerFighter);
+            recv_PlayerMove();
             score += 1;
 
             bgY += bgSpeed;
             if (bgY >= 3000) bgY = 0;
 
-            UpdatePlayerFighter();
+            UpdatePlayerFighter(hWnd);
 
             for (auto enemy : enemies)
             {
@@ -419,6 +533,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         {
             CreateEnemy();
         }
+
+
+
+
         break;
 
     case WM_COMMAND:
@@ -530,6 +648,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         if (playerFighter)
         {
             playerFighter->Draw(hMemDC);
+            anotherplayerFighter->Draw(hMemDC);
         }
 
         // 적 그리기

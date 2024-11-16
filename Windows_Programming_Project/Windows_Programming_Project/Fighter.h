@@ -17,6 +17,8 @@ public:
 
     int GetX() const { return x; }
     int GetY() const { return y; }
+    void SetX(int _x) { x = _x; }
+    void SetY(int _y) { y = _y; }
     int GetWidth() const { return image->GetWidth(); }
     int GetHeight() const { return image->GetHeight(); }
 
