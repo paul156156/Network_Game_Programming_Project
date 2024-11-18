@@ -63,7 +63,6 @@ using namespace std;
 CRITICAL_SECTION cs;
 int countid = 0;
 HANDLE gamestart = NULL;
-int p1x = 0, p1y = 0, p2x = 0, p2y = 0;
 
 struct PlayerSock {
 	SOCKET client_sock;

@@ -19,6 +19,7 @@
 #pragma comment(lib, "ws2_32") 
 
 using namespace Gdiplus;
+using namespace std;
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Class Name";
@@ -31,7 +32,7 @@ const int winHeight = 800;
 #define SERVERPORT 9000
 #define BUFSIZE    512
 char buf[BUFSIZE + 1];
-char* SERVERIP = (char*)"192.168.219.101";
+char* SERVERIP = (char*)"192.168.219.100";
 SOCKET sock;
 
 ULONG_PTR gdiplusToken;
@@ -300,6 +301,66 @@ void recv_PlayerMove()
     anotherplayerFighter->SetY(xy[1]);
 }
 
+struct BulletData { int x, y, dir; };
+void SendPlayerBullet(vector<Bullet*> _bullets)
+{
+    vector<BulletData> BD;
+    for (auto bullet : _bullets)
+    {
+        BulletData data = { bullet->GetX(),bullet->GetY(),bullet->GetDirection() };
+        BD.push_back(data);
+    }
+    
+
+    int retval, len, bulletcnt;
+    len = sizeof(BulletData) * BD.size();
+    bulletcnt = (int)BD.size();
+    if (sock == INVALID_SOCKET) {
+        MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
+        return;
+    }
+    retval = send(sock, (char*)&bulletcnt , sizeof(int), 0);
+
+    if (retval == SOCKET_ERROR)
+    {
+
+        err_display("send()");
+        return;
+    }
+
+    retval = send(sock, (const char*)BD.data(), len, 0);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("send()");
+        return;
+    }
+}
+void RecvPlayerBullet()
+{
+   
+    int retval, len, bulletcnt;
+
+    retval = recv(sock, (char*)&bulletcnt, sizeof(int), MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+
+    vector<BulletData> BD(bulletcnt);
+
+    retval = recv(sock, (char*)BD.data(), sizeof(BulletData) * bulletcnt, MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+
+}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
