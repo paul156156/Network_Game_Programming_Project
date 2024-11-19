@@ -135,7 +135,8 @@
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Fighter.cpp" />
     <ClCompile Include="GameStateHandler.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -148,7 +149,8 @@
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Fighter.h" />
     <ClInclude Include="GameStateHandler.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
     </ClInclude>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

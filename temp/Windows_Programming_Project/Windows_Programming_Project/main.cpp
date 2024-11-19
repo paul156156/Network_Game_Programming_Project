@@ -8,7 +8,8 @@
 #include "Enemy.h"
 #include "AdvancedEnemy.h"
 #include "Bullet.h"
-//#include "GameStateHandler.h"
+#include "GameStateHandler.h"
+#include <iostream>
 
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "winmm.lib")
@@ -174,8 +175,21 @@ void CheckCollisions(HWND hWnd)
         }), enemies.end());
 }
 
+void CreateDebugConsole()
+{
+    AllocConsole(); // 콘솔을 할당
+    FILE* fp;
+    freopen_s(&fp, "CONOUT$", "w", stdout); // 표준 출력(stdout)을 콘솔에 연결
+    freopen_s(&fp, "CONOUT$", "w", stderr); // 표준 에러(stderr)를 콘솔에 연결
+    std::cout.clear(); // std::cout 버퍼를 지워줌
+    std::cerr.clear(); // std::cerr 버퍼를 지워줌
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
+    // 디버그 콘솔 생성
+    CreateDebugConsole();
+
     HWND hWnd;
     MSG Message;
     WNDCLASSEX WndClass;
@@ -246,86 +260,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
     return (int)Message.wParam;
 }
 
-void HandleResume(HWND hWnd)
-{
-    paused = false;
-    SetTimer(hWnd, 1, 50, NULL);
-    SetTimer(hWnd, 2, 1000, NULL);
-    ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE); // Resume
-    ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE); // Restart
-    ShowWindow(GetDlgItem(hWnd, 4), SW_HIDE); // Toggle Music
-    ShowWindow(GetDlgItem(hWnd, 5), SW_HIDE); // Quit
-}
-
-void HandleStart(HWND hWnd)
-{
-    gameStarted = true;
-    showMenu = false;
-    ShowWindow(GetDlgItem(hWnd, 2), SW_HIDE); // Start
-    ShowWindow(GetDlgItem(hWnd, 4), SW_HIDE); // Toggle Music
-    ShowWindow(GetDlgItem(hWnd, 5), SW_HIDE); // Quit
-    SetTimer(hWnd, 1, 50, NULL);
-    SetTimer(hWnd, 2, 1000, NULL); // 1초마다 새로운 적 생성
-}
-
-void HandleRestart(HWND hWnd)
-{
-    // 게임 상태 초기화
-    gameStarted = false;
-    showMenu = false;
-    score = 0;
-    specialAttackCount = 0;
-    paused = false;
-    gameOver = false;
-
-    // 총알 초기화
-    for (auto bullet : bullets)
-    {
-        delete bullet;
-    }
-    bullets.clear();
-
-    // 적 초기화
-    for (auto enemy : enemies)
-    {
-        delete enemy;
-    }
-    enemies.clear();
-
-    // 플레이어 초기화
-    delete playerFighter;
-    playerFighter = new Fighter(PLAYER_START_X, PLAYER_START_Y, L"resource\\image\\fighter.png");
-    playerFighter->SetBoundary(0, 0, winWidth, winHeight);
-
-    ShowWindow(GetDlgItem(hWnd, 2), SW_HIDE); // Start
-    ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE); // Restart
-    ShowWindow(GetDlgItem(hWnd, 4), SW_HIDE); // Toggle Music
-    ShowWindow(GetDlgItem(hWnd, 5), SW_HIDE); // Quit
-    ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE); // Resume
-
-    SetTimer(hWnd, 1, 50, NULL);
-    SetTimer(hWnd, 2, 1000, NULL); // 1초마다 새로운 적 생성
-    gameStarted = true;
-}
-
-void HandleToggleMusic()
-{
-    if (musicPlaying)
-    {
-        mciSendString(L"stop bgm", NULL, 0, NULL);
-    }
-    else
-    {
-        PlayBGM(L"resource\\sound\\terran.mp3");
-    }
-    musicPlaying = !musicPlaying;
-}
-
-void HandleQuit()
-{
-    PostQuitMessage(0);
-}
-
 void UpdateEnemies()
 {
     for (auto enemy : enemies)
@@ -387,8 +321,6 @@ void Update(HWND hWnd, WPARAM wParam)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
     static Image* pBackgroundImage = nullptr;
-    static int bgY = 0;
-    const int bgSpeed = 4;
     static LPCWSTR imagePath = L"resource\\image\\bg.png"; // 이미지 파일 경로
 
     switch (iMessage)
@@ -488,10 +420,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
-        case 1: HandleResume(hWnd); break;
-        case 2: HandleStart(hWnd); break;
-        case 3: HandleRestart(hWnd); break;
-        case 4: HandleToggleMusic(); break;
+        case 1: HandleResume(hWnd, paused); break;
+        case 2: HandleStart(hWnd, gameStarted, showMenu); break;
+        case 3: HandleRestart(hWnd, bullets, enemies, playerFighter, score, specialAttackCount, gameStarted, showMenu, paused, gameOver, winWidth, winHeight); break;
+        case 4: HandleToggleMusic(musicPlaying); break;
         case 5: HandleQuit(); break;
         }
         InvalidateRect(hWnd, NULL, FALSE);
@@ -511,8 +443,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             int imgWidth = pBackgroundImage->GetWidth();
             int imgHeight = pBackgroundImage->GetHeight();
 
-            graphics.DrawImage(pBackgroundImage, 0, bgY - imgHeight, imgWidth, imgHeight);
-            graphics.DrawImage(pBackgroundImage, 0, bgY, imgWidth, imgHeight);
+            graphics.DrawImage(pBackgroundImage, 0, BACKGROUND_Y - imgHeight, imgWidth, imgHeight);
+            graphics.DrawImage(pBackgroundImage, 0, BACKGROUND_Y, imgWidth, imgHeight);
         }
 
         // 플레이어 전투기 그리기
