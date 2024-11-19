@@ -1,7 +1,7 @@
 #include "Bullet.h"
 
 Bullet::Bullet(int x, int y, int direction, LPCWSTR imagePath)
-    : x(x), y(y), direction(direction), destroyed(false)
+    : x(x), y(y), direction(direction), destroyed(false), send(false)
 {
     image = new Image(imagePath);
 }

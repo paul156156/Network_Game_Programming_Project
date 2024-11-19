@@ -12,6 +12,7 @@
 #include <stdlib.h> // exit(), ...
 #include <string.h> // strncpy(), ...
 #include <vector>
+#include <queue>
 
 #pragma comment(lib, "ws2_32") // ws2_32.lib 링크
 
@@ -65,12 +66,15 @@ CRITICAL_SECTION cs;
 int countid = 0;
 HANDLE gamestart = NULL;
 
+struct BulletData { int x, y; bool destroy, send; };
 struct PlayerSock {
 	SOCKET client_sock;
+	vector<BulletData> BulletVector;
 	int x = 0, y = 0;
 };
-struct BulletData { int x, y, dir; };
+
 PlayerSock PS[2];
+
 
 
 char* recv_filename(SOCKET client_sock, char* buf)
@@ -112,12 +116,50 @@ void recv_filesize(SOCKET client_sock, size_t& filesize)
 	else if (retval == 0)
 		return;
 }
-void RecvPlayerBullet(SOCKET client_sock)
+void SendPlayerBullet(PlayerSock* send_PS, PlayerSock* recv_PS)
 {
+	vector<BulletData> BD;
+	
+	for (auto bullet : send_PS->BulletVector)
+	{
+		BulletData data = { bullet.x,bullet.y,bullet.destroy ,bullet.send };
+		BD.push_back(data);
+
+	}
+
 
 	int retval, len, bulletcnt;
+	len = sizeof(BulletData) * BD.size();
+	bulletcnt = (int)BD.size();
+	if (recv_PS->client_sock == INVALID_SOCKET) {
+		MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
+		return;
+	}
+	retval = send(recv_PS->client_sock, (char*)&bulletcnt, sizeof(int), 0);
+	
+	if (bulletcnt == 0)
+		return;
 
-	retval = recv(client_sock, (char*)&bulletcnt, sizeof(int), MSG_WAITALL);
+	if (retval == SOCKET_ERROR)
+	{
+
+		err_display("send()");
+		return;
+	}
+	retval = send(recv_PS->client_sock, (const char*)BD.data(), len, 0);
+	if (retval == SOCKET_ERROR)
+	{
+		err_display("send()");
+		return;
+	}
+
+	send_PS->BulletVector.clear();
+}
+void RecvPlayerBullet(PlayerSock* PS)
+{
+	int retval, len, bulletcnt;
+	
+	retval = recv(PS->client_sock, (char*)&bulletcnt, sizeof(int), MSG_WAITALL);
 	if (retval == SOCKET_ERROR)
 	{
 		err_display("recv()");
@@ -126,9 +168,10 @@ void RecvPlayerBullet(SOCKET client_sock)
 	else if (retval == 0)
 		return;
 
+	if (bulletcnt == 0)
+		return;
 	vector<BulletData> BD(bulletcnt);
-
-	retval = recv(client_sock, (char*)BD.data(), sizeof(BulletData) * bulletcnt, MSG_WAITALL);
+	retval = recv(PS->client_sock, (char*)BD.data(), sizeof(BulletData) * bulletcnt, MSG_WAITALL);
 	if (retval == SOCKET_ERROR)
 	{
 		err_display("recv()");
@@ -136,12 +179,15 @@ void RecvPlayerBullet(SOCKET client_sock)
 	}
 	else if (retval == 0)
 		return;
+
+
+	for (auto& bullet : BD)
+		PS->BulletVector.push_back(bullet);
 
 	int num = 0;
 	EnterCriticalSection(&cs);
-	for (auto bullet : BD)
+	for (auto bullet : PS->BulletVector)
 	{
-		
 		cout << num << " - " << "x:" << bullet.x << "y:" << bullet.y << endl;
 		num++;
 	}
@@ -228,9 +274,9 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 
 
-		RecvPlayerBullet(client_sock);
-
-	
+		RecvPlayerBullet(&PS[clientId]);
+		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
+		//cout << "본인 클라이언트:" << clientId << "\t" << "보내는 클라이언트:" << (clientId + 1) % 2 << endl;
 	}
 
 
@@ -339,12 +385,12 @@ int main(int argc, char* argv[])
 
 		COORD Pos;
 
-		EnterCriticalSection(&cs);
+		/*EnterCriticalSection(&cs);
 		system("cls");
 		cout << "player1 x:" << PS[0].x << "\tplayer1 y:" << PS[0].y << endl;
 		cout << "player2 x:" << PS[1].x << "\tplayer2 y:" << PS[1].y << endl;
 		LeaveCriticalSection(&cs);
-		Sleep(200);
+		Sleep(200);*/
 	}
 
 

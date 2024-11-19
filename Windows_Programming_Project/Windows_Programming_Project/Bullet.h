@@ -14,7 +14,9 @@ public:
     bool IsOffScreen() const;
     int GetDirection() const { return direction; }
     void Destroy() { destroyed = true; }
+    void Send() { send = true; }
     bool IsDestroyed() const { return destroyed; }
+    bool IsSend() const { return send; }
 
     int GetX() const { return x; }
     int GetY() const { return y; }
@@ -25,5 +27,6 @@ private:
     int x, y;
     int direction; // 방향: -1은 위, 1은 아래
     bool destroyed;
+    bool send;
     Image* image;
 };

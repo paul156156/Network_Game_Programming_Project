@@ -42,6 +42,8 @@ std::vector<Bullet*> Enemybullets;
 std::vector<Bullet*> Player1bullets;
 std::vector<Bullet*> Player2bullets;
 std::vector<Enemy*> enemies;
+//std::vector<BulletData*> IsSendBullet;
+
 Image* lifeImage = nullptr;
 int score = 0;
 int specialAttackUses = 0;
@@ -115,6 +117,35 @@ void FireBullet()
     else
     {
         Player1bullets.push_back(new Bullet(x, y, -1, L"resource\\image\\bullet.png"));
+    }
+}
+void FireBullet(int _x, int _y)
+{
+    if (anotherplayerFighter == nullptr) return;
+
+    int x = _x;
+    int y = _y;
+
+    if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && specialAttackUses > 0)
+    {
+        for (int i = 0; i < winWidth - 200; i += 50)
+        {
+            Player2bullets.push_back(new Bullet(i, y + 20, -1, L"resource\\image\\special_bullet.png"));
+            Player2bullets.push_back(new Bullet(i, y - 20, -1, L"resource\\image\\special_bullet.png"));
+            Player2bullets.push_back(new Bullet(i, y - 60, -1, L"resource\\image\\special_bullet.png"));
+        }
+        specialAttackUses--;
+        usedSpecialAttackCount++;
+    }
+    // 점수가 1000점 이상일 때 총알을 두 발 발사
+    if (score >= 1000)
+    {
+        Player2bullets.push_back(new Bullet(x - 40, y, -1, L"resource\\image\\bullet.png"));
+        Player2bullets.push_back(new Bullet(x, y, -1, L"resource\\image\\bullet.png"));
+    }
+    else
+    {
+        Player2bullets.push_back(new Bullet(x, y, -1, L"resource\\image\\bullet.png"));
     }
 }
 
@@ -334,13 +365,15 @@ void recv_PlayerMove()
     anotherplayerFighter->SetY(xy[1]);
 }
 
-struct BulletData { int x, y, dir; };
-void SendPlayerBullet(vector<Bullet*> _bullets)
+struct BulletData { int x, y; bool destroy, send; };
+void SendPlayerBullet(vector<Bullet*>& _bullets)
 {
     vector<BulletData> BD;
     for (auto bullet : _bullets)
     {
-        BulletData data = { bullet->GetX(),bullet->GetY(),bullet->GetDirection() };
+        if (bullet->IsSend())
+            continue;
+        BulletData data = { bullet->GetX(),bullet->GetY(),bullet->IsDestroyed(),bullet->IsSend() };
         BD.push_back(data);
     }
 
@@ -360,6 +393,8 @@ void SendPlayerBullet(vector<Bullet*> _bullets)
         err_display("send()");
         return;
     }
+    if (bulletcnt == 0)
+        return;
 
     retval = send(sock, (const char*)BD.data(), len, 0);
     if (retval == SOCKET_ERROR)
@@ -367,10 +402,12 @@ void SendPlayerBullet(vector<Bullet*> _bullets)
         err_display("send()");
         return;
     }
+
+    for (auto& bullet : _bullets)
+        bullet->Send();
 }
 void RecvPlayerBullet()
 {
-
     int retval, len, bulletcnt;
 
     retval = recv(sock, (char*)&bulletcnt, sizeof(int), MSG_WAITALL);
@@ -380,6 +417,9 @@ void RecvPlayerBullet()
         return;
     }
     else if (retval == 0)
+        return;
+
+    if (bulletcnt == 0)
         return;
 
     vector<BulletData> BD(bulletcnt);
@@ -392,7 +432,11 @@ void RecvPlayerBullet()
     }
     else if (retval == 0)
         return;
-
+    
+    for (auto bullet : BD)  
+        FireBullet(bullet.x, bullet.y);
+      
+    
 }
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
@@ -592,6 +636,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             PlayerMove(*playerFighter);
             recv_PlayerMove();
             SendPlayerBullet(Player1bullets);
+            RecvPlayerBullet();
             score += 1;
 
             bgY += bgSpeed;
@@ -808,6 +853,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         for (auto bullet : Player2bullets)
         {
             bullet->Draw(hMemDC);
+            cout << bullet->GetX() << bullet->GetY();
         }
 
 
