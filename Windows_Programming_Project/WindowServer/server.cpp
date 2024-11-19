@@ -11,6 +11,7 @@
 #include <stdio.h> // printf(), ...
 #include <stdlib.h> // exit(), ...
 #include <string.h> // strncpy(), ...
+#include <vector>
 
 #pragma comment(lib, "ws2_32") // ws2_32.lib ¸µÅ©
 
@@ -68,7 +69,7 @@ struct PlayerSock {
 	SOCKET client_sock;
 	int x = 0, y = 0;
 };
-
+struct BulletData { int x, y, dir; };
 PlayerSock PS[2];
 
 
@@ -111,7 +112,41 @@ void recv_filesize(SOCKET client_sock, size_t& filesize)
 	else if (retval == 0)
 		return;
 }
+void RecvPlayerBullet(SOCKET client_sock)
+{
 
+	int retval, len, bulletcnt;
+
+	retval = recv(client_sock, (char*)&bulletcnt, sizeof(int), MSG_WAITALL);
+	if (retval == SOCKET_ERROR)
+	{
+		err_display("recv()");
+		return;
+	}
+	else if (retval == 0)
+		return;
+
+	vector<BulletData> BD(bulletcnt);
+
+	retval = recv(client_sock, (char*)BD.data(), sizeof(BulletData) * bulletcnt, MSG_WAITALL);
+	if (retval == SOCKET_ERROR)
+	{
+		err_display("recv()");
+		return;
+	}
+	else if (retval == 0)
+		return;
+
+	int num = 0;
+	EnterCriticalSection(&cs);
+	for (auto bullet : BD)
+	{
+		
+		cout << num << " - " << "x:" << bullet.x << "y:" << bullet.y << endl;
+		num++;
+	}
+	LeaveCriticalSection(&cs);
+}
 
 struct clientinfo
 {
@@ -190,6 +225,12 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			err_display("send()");
 			break;
 		}
+
+
+
+		RecvPlayerBullet(client_sock);
+
+	
 	}
 
 
@@ -303,7 +344,7 @@ int main(int argc, char* argv[])
 		cout << "player1 x:" << PS[0].x << "\tplayer1 y:" << PS[0].y << endl;
 		cout << "player2 x:" << PS[1].x << "\tplayer2 y:" << PS[1].y << endl;
 		LeaveCriticalSection(&cs);
-		Sleep(100);
+		Sleep(200);
 	}
 
 

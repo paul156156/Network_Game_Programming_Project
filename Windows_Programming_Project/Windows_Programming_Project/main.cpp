@@ -38,7 +38,9 @@ SOCKET sock;
 ULONG_PTR gdiplusToken;
 Fighter* playerFighter = nullptr;
 Fighter* anotherplayerFighter = nullptr;
-std::vector<Bullet*> bullets;
+std::vector<Bullet*> Enemybullets;
+std::vector<Bullet*> Player1bullets;
+std::vector<Bullet*> Player2bullets;
 std::vector<Enemy*> enemies;
 Image* lifeImage = nullptr;
 int score = 0;
@@ -95,11 +97,11 @@ void FireBullet()
 
     if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && specialAttackUses > 0)
     {
-        for (int i = 0; i < winWidth - 200; i += 50) 
+        for (int i = 0; i < winWidth - 200; i += 50)
         {
-            bullets.push_back(new Bullet(i, y + 20, -1, L"resource\\image\\special_bullet.png"));
-            bullets.push_back(new Bullet(i, y - 20, -1, L"resource\\image\\special_bullet.png"));
-            bullets.push_back(new Bullet(i, y - 60, -1, L"resource\\image\\special_bullet.png"));
+            Player1bullets.push_back(new Bullet(i, y + 20, -1, L"resource\\image\\special_bullet.png"));
+            Player1bullets.push_back(new Bullet(i, y - 20, -1, L"resource\\image\\special_bullet.png"));
+            Player1bullets.push_back(new Bullet(i, y - 60, -1, L"resource\\image\\special_bullet.png"));
         }
         specialAttackUses--;
         usedSpecialAttackCount++;
@@ -107,12 +109,12 @@ void FireBullet()
     // 점수가 1000점 이상일 때 총알을 두 발 발사
     if (score >= 1000)
     {
-        bullets.push_back(new Bullet(x - 40, y, -1, L"resource\\image\\bullet.png"));
-        bullets.push_back(new Bullet(x, y, -1, L"resource\\image\\bullet.png"));
+        Player1bullets.push_back(new Bullet(x - 40, y, -1, L"resource\\image\\bullet.png"));
+        Player1bullets.push_back(new Bullet(x, y, -1, L"resource\\image\\bullet.png"));
     }
     else
     {
-        bullets.push_back(new Bullet(x, y, -1, L"resource\\image\\bullet.png"));
+        Player1bullets.push_back(new Bullet(x, y, -1, L"resource\\image\\bullet.png"));
     }
 }
 
@@ -135,7 +137,7 @@ void CheckCollisions(HWND hWnd)
 {
     if (playerFighter == nullptr) return; // 객체가 nullptr인지 확인
 
-    for (auto bullet : bullets)
+    for (auto bullet : Enemybullets)
     {
         // 플레이어와 적의 총알 충돌
         if (bullet->GetDirection() == 1 && CheckCollision(playerFighter->GetX(), playerFighter->GetY(), playerFighter->GetWidth(), playerFighter->GetHeight(),
@@ -160,7 +162,20 @@ void CheckCollisions(HWND hWnd)
 
     for (auto enemy : enemies)
     {
-        for (auto bullet : bullets)
+        for (auto bullet : Player1bullets)//player1 총알 충돌
+        {
+            if (bullet->GetDirection() == -1 && CheckCollision(enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight(),
+                bullet->GetX(), bullet->GetY(), bullet->GetWidth(), bullet->GetHeight()))
+            {
+                enemy->TakeDamage();
+                bullet->Destroy();
+                if (enemy->IsDestroyed())
+                {
+                    score += 10;
+                }
+            }
+        }
+        for (auto bullet : Player2bullets)//player2 총알 충돌
         {
             if (bullet->GetDirection() == -1 && CheckCollision(enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight(),
                 bullet->GetX(), bullet->GetY(), bullet->GetWidth(), bullet->GetHeight()))
@@ -192,14 +207,32 @@ void CheckCollisions(HWND hWnd)
     }
 
     // 화면을 벗어난 총알 삭제
-    bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](Bullet* bullet) {
+    Enemybullets.erase(std::remove_if(Enemybullets.begin(), Enemybullets.end(), [](Bullet* bullet) {
         if (bullet->IsOffScreen() || bullet->IsDestroyed())
         {
             delete bullet;
             return true;
         }
         return false;
-        }), bullets.end());
+    }), Enemybullets.end());
+    Player1bullets.erase(std::remove_if(Player1bullets.begin(), Player1bullets.end(), [](Bullet* bullet) {
+        if (bullet->IsOffScreen() || bullet->IsDestroyed())
+        {
+            delete bullet;
+            return true;
+        }
+        return false;
+    }), Player1bullets.end());
+    Player2bullets.erase(std::remove_if(Player2bullets.begin(), Player2bullets.end(), [](Bullet* bullet) {
+        if (bullet->IsOffScreen() || bullet->IsDestroyed())
+        {
+            delete bullet;
+            return true;
+        }
+        return false;
+    }), Player2bullets.end());
+
+
 
     // 파괴된 적 삭제
     enemies.erase(std::remove_if(enemies.begin(), enemies.end(), [](Enemy* enemy) {
@@ -209,7 +242,7 @@ void CheckCollisions(HWND hWnd)
             return true;
         }
         return false;
-        }), enemies.end());
+    }), enemies.end());
 }
 
 void InitSocket()
@@ -227,7 +260,7 @@ void InitSocket()
         WSACleanup();
         exit(1);
     }
-    
+
 
 
     // connect()
@@ -253,7 +286,7 @@ void PlayerMove(Fighter& player)
     int retval, len;
 
     len = sizeof(xy);
-   
+
     if (sock == INVALID_SOCKET) {
         MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
         return;
@@ -277,7 +310,7 @@ void PlayerMove(Fighter& player)
 void recv_PlayerMove()
 {
     int xy[2];
-    int retval,len;
+    int retval, len;
 
     retval = recv(sock, (char*)&len, sizeof(int), MSG_WAITALL);
     if (retval == SOCKET_ERROR)
@@ -310,16 +343,16 @@ void SendPlayerBullet(vector<Bullet*> _bullets)
         BulletData data = { bullet->GetX(),bullet->GetY(),bullet->GetDirection() };
         BD.push_back(data);
     }
-    
+
 
     int retval, len, bulletcnt;
-    len = sizeof(BulletData) * BD.size();
+    len = sizeof(BulletData)*BD.size();
     bulletcnt = (int)BD.size();
     if (sock == INVALID_SOCKET) {
         MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
         return;
     }
-    retval = send(sock, (char*)&bulletcnt , sizeof(int), 0);
+    retval = send(sock, (char*)&bulletcnt, sizeof(int), 0);
 
     if (retval == SOCKET_ERROR)
     {
@@ -337,7 +370,7 @@ void SendPlayerBullet(vector<Bullet*> _bullets)
 }
 void RecvPlayerBullet()
 {
-   
+
     int retval, len, bulletcnt;
 
     retval = recv(sock, (char*)&bulletcnt, sizeof(int), MSG_WAITALL);
@@ -361,7 +394,6 @@ void RecvPlayerBullet()
         return;
 
 }
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
     HWND hWnd;
@@ -431,7 +463,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
     delete playerFighter;
 
     // 총알 객체들 삭제
-    for (auto bullet : bullets)
+    for (auto bullet : Enemybullets)
+    {
+        delete bullet;
+    }
+    for (auto bullet : Player1bullets)
+    {
+        delete bullet;
+    }
+    for (auto bullet : Player2bullets)
     {
         delete bullet;
     }
@@ -551,6 +591,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         {
             PlayerMove(*playerFighter);
             recv_PlayerMove();
+            SendPlayerBullet(Player1bullets);
             score += 1;
 
             bgY += bgSpeed;
@@ -561,26 +602,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             for (auto enemy : enemies)
             {
                 enemy->Move();
-                enemy->Attack(bullets);
+                enemy->Attack(Enemybullets);
             }
 
             CheckCollisions(hWnd);
 
             // 총알 업데이트
-            for (auto bullet : bullets)
+            for (auto bullet : Enemybullets)
+            {
+                bullet->Update();
+            }
+            for (auto bullet : Player1bullets)
+            {
+                bullet->Update();
+            }
+            for (auto bullet : Player2bullets)
             {
                 bullet->Update();
             }
 
             // 화면을 벗어난 총알 삭제
-            bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](Bullet* bullet) {
+            Enemybullets.erase(std::remove_if(Enemybullets.begin(), Enemybullets.end(), [](Bullet* bullet) {
                 if (bullet->IsOffScreen())
                 {
                     delete bullet;
                     return true;
                 }
                 return false;
-                }), bullets.end());
+            }), Enemybullets.end());
+            Player1bullets.erase(std::remove_if(Player1bullets.begin(), Player1bullets.end(), [](Bullet* bullet) {
+                if (bullet->IsOffScreen())
+                {
+                    delete bullet;
+                    return true;
+                }
+                return false;
+            }), Player1bullets.end());
+            Player2bullets.erase(std::remove_if(Player2bullets.begin(), Player2bullets.end(), [](Bullet* bullet) {
+                if (bullet->IsOffScreen())
+                {
+                    delete bullet;
+                    return true;
+                }
+                return false;
+            }), Player2bullets.end());
 
             // 점수에 따라 특수 공격 사용 횟수 증가
             if (score / 1000 > specialAttackUses + usedSpecialAttackCount)
@@ -639,11 +704,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             gameOver = false;
 
             // 총알 초기화
-            for (auto bullet : bullets)
+            for (auto bullet : Enemybullets)
             {
                 delete bullet;
             }
-            bullets.clear();
+            Enemybullets.clear();
+
+            for (auto bullet : Player1bullets)
+            {
+                delete bullet;
+            }
+            Player1bullets.clear();
+
+            for (auto bullet : Player2bullets)
+            {
+                delete bullet;
+            }
+            Player2bullets.clear();
+
             // 적 초기화
             for (auto enemy : enemies)
             {
@@ -719,10 +797,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         }
 
         // 총알 그리기
-        for (auto bullet : bullets)
+        for (auto bullet : Enemybullets)
         {
             bullet->Draw(hMemDC);
         }
+        for (auto bullet : Player1bullets)
+        {
+            bullet->Draw(hMemDC);
+        }
+        for (auto bullet : Player2bullets)
+        {
+            bullet->Draw(hMemDC);
+        }
+
 
         // 점수 표시
         SetBkMode(hMemDC, TRANSPARENT);
