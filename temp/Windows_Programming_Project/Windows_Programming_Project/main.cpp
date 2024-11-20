@@ -389,35 +389,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             bullet->Draw(hMemDC);
         }
 
-  //      // 점수 표시
-  //      SetBkMode(hMemDC, TRANSPARENT);
-  //      SetTextColor(hMemDC, RGB(255, 255, 255));
-  //      HFONT hFont = CreateFont(24, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
-  //      HFONT hOldFont = (HFONT)SelectObject(hMemDC, hFont);
-  //      wchar_t scoreText[50];
-  //      swprintf_s(scoreText, L"Score: %d", score);
-  //      TextOut(hMemDC, 520, 20, scoreText, wcslen(scoreText));
-  //      SelectObject(hMemDC, hOldFont);
-  //      DeleteObject(hFont);
-
-		//// 특수 공격 가능 횟수 표시
-  //      wchar_t specialAttackText[50];
-  //      swprintf_s(specialAttackText, L"Special Bullet: %d", specialAttackCount);
-  //      TextOut(hMemDC, 520, 80, specialAttackText, wcslen(specialAttackText));
-
-  //      SelectObject(hMemDC, hOldFont);
-  //      DeleteObject(hFont);
-
-  //      // 생명 수 표시
-  //      if (playerFighter)
-  //      {
-  //          for (int i = 0; i < playerFighter->GetLives(); ++i)
-  //          {
-  //              Graphics graphics(hMemDC);
-  //              graphics.DrawImage(lifeImage, 520 + i * 40, 100, lifeImage->GetWidth(), lifeImage->GetHeight());
-  //          }
-  //      }
-
         // 점수와 특수 공격 가능 횟수 표시
         DisplayScoreAndSpecialAttack(hMemDC, score, specialAttackCount);
 
