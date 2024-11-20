@@ -16,12 +16,18 @@ public:
     void HandleCollisions(HWND hWnd);
     void CreateEnemy();
 
-    Fighter* GetPlayer() const { return playerFighter; }
-    const std::vector<Bullet*>& GetBullets() const { return bullets; }
-    const std::vector<Enemy*>& GetEnemies() const { return enemies; }
+    //Fighter* GetPlayer() const { return playerFighter; }
+    Fighter* GetPlayer() { return playerFighter; }
+    //const std::vector<Bullet*>& GetBullets() const { return bullets; }
+    std::vector<Bullet*>& GetBullets() { return bullets; }
+   //const std::vector<Enemy*>& GetEnemies() const { return enemies; }
+    std::vector<Enemy*>& GetEnemies() { return enemies; }
 
     int GetScore() const { return score; }
-    int GetSpecialAttackCount() const { return specialAttackCount; }
+    //int GetSpecialAttackCount() const { return specialAttackCount; }
+    int& GetSpecialAttackCount() { return specialAttackCount; }
+
+    void Draw(HDC hMemDC);
 
 private:
     int winWidth;

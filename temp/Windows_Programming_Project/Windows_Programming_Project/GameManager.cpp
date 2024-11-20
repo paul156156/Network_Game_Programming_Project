@@ -71,6 +71,31 @@ void GameManager::CreateEnemy()
     enemies.push_back(new Enemy(x, 0, L"resource\\image\\enemy.png"));
 }
 
+void GameManager::UpdateEnemies()
+{
+	for (auto enemy : enemies)
+	{
+		enemy->Move();
+		enemy->Attack(bullets);
+	}
+}
+
+void GameManager::UpdateBullets()
+{
+    for (auto bullet : bullets)
+    {
+        bullet->Update();
+    }
+    bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](Bullet* bullet) {
+        if (bullet->IsOffScreen() || bullet->IsDestroyed())
+        {
+            delete bullet;
+            return true;
+        }
+        return false;
+        }), bullets.end());
+}
+
 void GameManager::HandleCollisions(HWND hWnd)
 {
     if (!playerFighter) return;
@@ -132,11 +157,6 @@ void GameManager::HandleCollisions(HWND hWnd)
         }), enemies.end());
 }
 
-bool CheckCollision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
-{
-    return !(x1 > x2 + w2 || x1 + w1 < x2 || y1 > y2 + h2 || y1 + h1 < y2);
-}
-
 void GameManager::UpdateSpecialAttackCount()
 {
     if (score >= lastThreshold + 1000)
@@ -144,4 +164,27 @@ void GameManager::UpdateSpecialAttackCount()
         specialAttackCount++;
         lastThreshold += 1000;
     }
+}
+
+void GameManager::Draw(HDC hMemDC)
+{
+    if (playerFighter)
+    {
+        playerFighter->Draw(hMemDC);
+    }
+
+    for (auto enemy : enemies)
+    {
+        enemy->Draw(hMemDC);
+    }
+
+    for (auto bullet : bullets)
+    {
+        bullet->Draw(hMemDC);
+    }
+}
+
+bool CheckCollision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
+{
+    return !(x1 > x2 + w2 || x1 + w1 < x2 || y1 > y2 + h2 || y1 + h1 < y2);
 }
