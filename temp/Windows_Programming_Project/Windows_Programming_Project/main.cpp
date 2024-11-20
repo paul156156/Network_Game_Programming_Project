@@ -8,7 +8,7 @@
 #include "Enemy.h"
 #include "AdvancedEnemy.h"
 #include "Bullet.h"
-#include "GameStateHandler.h"
+#include "UIhandler.h"
 #include <iostream>
 
 #pragma comment(lib, "gdiplus.lib")
@@ -33,7 +33,7 @@ Fighter* playerFighter = nullptr;
 std::vector<Bullet*> bullets;
 std::vector<Enemy*> enemies;
 Image* lifeImage = nullptr;
-int score = 990;
+int score = 0;
 int specialAttackCount = 0;
 int lastThreshold = 0;
 bool gameStarted = false;
@@ -329,84 +329,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         pBackgroundImage = LoadPNG(imagePath);
         lifeImage = LoadPNG(L"resource\\image\\life.png"); // 생명 수 이미지 로드
 
-        // Resume 버튼 생성
-        CreateWindow(
-            L"BUTTON",  // 버튼 클래스 이름
-            L"Resume", // 버튼 텍스트
-            WS_TABSTOP | WS_CHILD | BS_DEFPUSHBUTTON,  // 스타일
-            winWidth / 2 - 50, // 버튼 위치 (가로 중앙)
-            winHeight / 2 - 70, // 버튼 위치 (세로 중앙 위)
-            100,  // 버튼 폭
-            40,   // 버튼 높이
-            hWnd, // 부모 윈도우 핸들
-            (HMENU)1, // 버튼 ID
-            g_hInst,  // 인스턴스 핸들
-            NULL      // 추가 매개변수
-        );
-
-        // Start 버튼 생성
-        CreateWindow(
-            L"BUTTON",  // 버튼 클래스 이름
-            L"Start",   // 버튼 텍스트
-            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // 스타일
-            winWidth / 2 - 50, // 버튼 위치 (가로 중앙)
-            winHeight / 2 - 20, // 버튼 위치 (세로 중앙)
-            100,  // 버튼 폭
-            40,   // 버튼 높이
-            hWnd, // 부모 윈도우 핸들
-            (HMENU)2, // 버튼 ID
-            g_hInst,  // 인스턴스 핸들
-            NULL      // 추가 매개변수
-        );
-
-        // Restart 버튼 생성
-        CreateWindow(
-            L"BUTTON",  // 버튼 클래스 이름
-            L"Restart", // 버튼 텍스트
-            WS_TABSTOP | WS_CHILD | BS_DEFPUSHBUTTON,  // 스타일
-            winWidth / 2 - 50, // 버튼 위치 (가로 중앙)
-            winHeight / 2 - 20, // 버튼 위치 (세로 중앙)
-            100,  // 버튼 폭
-            40,   // 버튼 높이
-            hWnd, // 부모 윈도우 핸들
-            (HMENU)3, // 버튼 ID
-            g_hInst,  // 인스턴스 핸들
-            NULL      // 추가 매개변수
-        );
-
-        // Toggle Music 버튼 생성
-        CreateWindow(
-            L"BUTTON",  // 버튼 클래스 이름
-            L"Toggle Music", // 버튼 텍스트
-            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // 스타일
-            winWidth / 2 - 50, // 버튼 위치 (가로 중앙)
-            winHeight / 2 + 30, // 버튼 위치 (세로 중앙 아래)
-            100,  // 버튼 폭
-            40,   // 버튼 높이
-            hWnd, // 부모 윈도우 핸들
-            (HMENU)4, // 버튼 ID
-            g_hInst,  // 인스턴스 핸들
-            NULL      // 추가 매개변수
-        );
-
-        // Quit 버튼 생성
-        CreateWindow(
-            L"BUTTON",  // 버튼 클래스 이름
-            L"Quit", // 버튼 텍스트
-            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // 스타일
-            winWidth / 2 - 50, // 버튼 위치 (가로 중앙)
-            winHeight / 2 + 80, // 버튼 위치 (세로 중앙 아래)
-            100,  // 버튼 폭
-            40,   // 버튼 높이
-            hWnd, // 부모 윈도우 핸들
-            (HMENU)5, // 버튼 ID
-            g_hInst,  // 인스턴스 핸들
-            NULL      // 추가 매개변수
-        );
-
-        // 초기 상태에서 Resume와 Restart 버튼 숨기기
-        ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE); // Resume
-        ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE); // Restart
+        CreateGameButtons(hWnd, winWidth, winHeight, g_hInst);
+        ShowInitialUIState(hWnd);
 
         break;
 
@@ -465,34 +389,40 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             bullet->Draw(hMemDC);
         }
 
-        // 점수 표시
-        SetBkMode(hMemDC, TRANSPARENT);
-        SetTextColor(hMemDC, RGB(255, 255, 255));
-        HFONT hFont = CreateFont(24, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
-        HFONT hOldFont = (HFONT)SelectObject(hMemDC, hFont);
-        wchar_t scoreText[50];
-        swprintf_s(scoreText, L"Score: %d", score);
-        TextOut(hMemDC, 520, 20, scoreText, wcslen(scoreText));
-        SelectObject(hMemDC, hOldFont);
-        DeleteObject(hFont);
+  //      // 점수 표시
+  //      SetBkMode(hMemDC, TRANSPARENT);
+  //      SetTextColor(hMemDC, RGB(255, 255, 255));
+  //      HFONT hFont = CreateFont(24, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
+  //      HFONT hOldFont = (HFONT)SelectObject(hMemDC, hFont);
+  //      wchar_t scoreText[50];
+  //      swprintf_s(scoreText, L"Score: %d", score);
+  //      TextOut(hMemDC, 520, 20, scoreText, wcslen(scoreText));
+  //      SelectObject(hMemDC, hOldFont);
+  //      DeleteObject(hFont);
 
-		// 특수 공격 가능 횟수 표시
-        wchar_t specialAttackText[50];
-        swprintf_s(specialAttackText, L"Special Bullet: %d", specialAttackCount);
-        TextOut(hMemDC, 520, 80, specialAttackText, wcslen(specialAttackText));
+		//// 특수 공격 가능 횟수 표시
+  //      wchar_t specialAttackText[50];
+  //      swprintf_s(specialAttackText, L"Special Bullet: %d", specialAttackCount);
+  //      TextOut(hMemDC, 520, 80, specialAttackText, wcslen(specialAttackText));
 
-        SelectObject(hMemDC, hOldFont);
-        DeleteObject(hFont);
+  //      SelectObject(hMemDC, hOldFont);
+  //      DeleteObject(hFont);
+
+  //      // 생명 수 표시
+  //      if (playerFighter)
+  //      {
+  //          for (int i = 0; i < playerFighter->GetLives(); ++i)
+  //          {
+  //              Graphics graphics(hMemDC);
+  //              graphics.DrawImage(lifeImage, 520 + i * 40, 100, lifeImage->GetWidth(), lifeImage->GetHeight());
+  //          }
+  //      }
+
+        // 점수와 특수 공격 가능 횟수 표시
+        DisplayScoreAndSpecialAttack(hMemDC, score, specialAttackCount);
 
         // 생명 수 표시
-        if (playerFighter)
-        {
-            for (int i = 0; i < playerFighter->GetLives(); ++i)
-            {
-                Graphics graphics(hMemDC);
-                graphics.DrawImage(lifeImage, 520 + i * 40, 100, lifeImage->GetWidth(), lifeImage->GetHeight());
-            }
-        }
+        DisplayPlayerLives(hMemDC, playerFighter, lifeImage);
 
         BitBlt(hDC, 0, 0, winWidth, winHeight, hMemDC, 0, 0, SRCCOPY);
 
@@ -523,10 +453,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
                     KillTimer(hWnd, 2);
 
                     // 메뉴 보이기
-                    ShowWindow(GetDlgItem(hWnd, 1), SW_SHOW); // Resume
-                    ShowWindow(GetDlgItem(hWnd, 3), SW_SHOW); // Restart
-                    ShowWindow(GetDlgItem(hWnd, 4), SW_SHOW); // Toggle Music
-                    ShowWindow(GetDlgItem(hWnd, 5), SW_SHOW); // Quit
+					ShowMenu(hWnd);
                 }
                 else
                 {
@@ -535,10 +462,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
                     SetTimer(hWnd, 2, 1000, NULL);
 
                     // 메뉴 숨기기
-                    ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE);
-                    ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE);
-                    ShowWindow(GetDlgItem(hWnd, 4), SW_HIDE);
-                    ShowWindow(GetDlgItem(hWnd, 5), SW_HIDE);
+					HideMenu(hWnd);
                 }
             }
             InvalidateRect(hWnd, NULL, FALSE);

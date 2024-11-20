@@ -30,7 +30,7 @@
     <ClCompile Include="AdvancedEnemy.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="GameStateHandler.cpp">
+    <ClCompile Include="UIhandler.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
@@ -47,7 +47,7 @@
     <ClInclude Include="AdvancedEnemy.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="GameStateHandler.h">
+    <ClInclude Include="UIhandler.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

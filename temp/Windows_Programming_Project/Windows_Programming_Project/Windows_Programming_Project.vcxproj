@@ -134,7 +134,7 @@
     <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Fighter.cpp" />
-    <ClCompile Include="GameStateHandler.cpp">
+    <ClCompile Include="UIhandler.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
     </ClCompile>
@@ -148,7 +148,7 @@
     <ClInclude Include="Bullet.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Fighter.h" />
-    <ClInclude Include="GameStateHandler.h">
+    <ClInclude Include="UIhandler.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
     </ClInclude>
