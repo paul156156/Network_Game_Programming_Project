@@ -32,7 +32,8 @@ const int winHeight = 800;
 #define SERVERPORT 9000
 #define BUFSIZE    512
 char buf[BUFSIZE + 1];
-char* SERVERIP = (char*)"192.168.219.100";
+//char* SERVERIP = (char*)"192.168.219.100";
+char* SERVERIP = (char*)"192.168.42.201";
 SOCKET sock;
 
 ULONG_PTR gdiplusToken;
@@ -119,7 +120,7 @@ void FireBullet()
         Player1bullets.push_back(new Bullet(x, y, -1, L"resource\\image\\bullet.png"));
     }
 }
-void FireBullet(int _x, int _y)
+void FireBullet(int _x, int _y)//player2 ÃÑ¾Ë ¹ß»ç
 {
     if (anotherplayerFighter == nullptr) return;
 
@@ -438,6 +439,37 @@ void RecvPlayerBullet()
       
     
 }
+void IsPlayerDead()
+{
+    int retval;
+    bool dead = true;
+    
+    retval = send(sock, (char*)&dead, sizeof(dead), 0);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("send()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+}
+void recvPlayerDead()
+{
+    int retval;
+    bool dead = false;
+   
+ 
+    retval = recv(sock, (char*)&dead, sizeof(dead), MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+}
+
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
     HWND hWnd;

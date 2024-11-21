@@ -390,7 +390,7 @@ int main(int argc, char* argv[])
 		cout << "player1 x:" << PS[0].x << "\tplayer1 y:" << PS[0].y << endl;
 		cout << "player2 x:" << PS[1].x << "\tplayer2 y:" << PS[1].y << endl;
 		LeaveCriticalSection(&cs);
-		Sleep(200);*/
+		Sleep(200);*/	
 	}
 
 
