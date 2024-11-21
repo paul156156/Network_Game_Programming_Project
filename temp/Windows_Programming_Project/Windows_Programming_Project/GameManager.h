@@ -8,26 +8,33 @@
 class GameManager
 {
 public:
+    const int PLAYER_START_X = 225;
+    const int PLAYER_START_Y = 700;
+    const int BACKGROUND_SPEED = 4;
+
     GameManager(int width, int height);
     ~GameManager();
 
-    void Initialize(HWND hWnd);
+
+
+    Fighter*& GetPlayer() { return playerFighter; }
+    std::vector<Bullet*>& GetBullets() { return bullets; }
+    std::vector<Enemy*>& GetEnemies() { return enemies; }
+    int& GetScore() { return score; }
+    int& GetSpecialAttackCount() { return specialAttackCount; }
+
+    void SetPlayer(Fighter* newPlayer) { playerFighter = newPlayer; }
+	void SetBullets(std::vector<Bullet*>& newBullets) { bullets = newBullets; }
+	void SetEnemies(std::vector<Enemy*>& newEnemies) { enemies = newEnemies; }
+
+    void Initialize();
+    void CreatePlayer(HWND hWnd);
     void Update(HWND hWnd, WPARAM wParam);
     void HandleCollisions(HWND hWnd);
     void CreateEnemy();
 
-    //Fighter* GetPlayer() const { return playerFighter; }
-    Fighter* GetPlayer() { return playerFighter; }
-    //const std::vector<Bullet*>& GetBullets() const { return bullets; }
-    std::vector<Bullet*>& GetBullets() { return bullets; }
-   //const std::vector<Enemy*>& GetEnemies() const { return enemies; }
-    std::vector<Enemy*>& GetEnemies() { return enemies; }
-
-    int GetScore() const { return score; }
-    //int GetSpecialAttackCount() const { return specialAttackCount; }
-    int& GetSpecialAttackCount() { return specialAttackCount; }
-
     void Draw(HDC hMemDC);
+	void GameOver(HWND hWnd);
 
 private:
     int winWidth;

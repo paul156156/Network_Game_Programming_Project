@@ -2,10 +2,6 @@
 #include <algorithm>
 #include "AdvancedEnemy.h"
 
-const int PLAYER_START_X = 225;
-const int PLAYER_START_Y = 700;
-const int BACKGROUND_SPEED = 4;
-
 GameManager::GameManager(int width, int height)
     : winWidth(width), winHeight(height), backgroundY(0), score(0), specialAttackCount(0), lastThreshold(0), playerFighter(nullptr)
 {
@@ -18,15 +14,56 @@ GameManager::~GameManager()
     for (auto enemy : enemies) delete enemy;
 }
 
-void GameManager::Initialize(HWND hWnd)
+void GameManager::Initialize()
 {
+    // 게임 상태 초기화
+    backgroundY = 0;
+    score = 0;
+    specialAttackCount = 0;
+    lastThreshold = 0;
+
+    for (auto bullet : bullets)
+    {
+        delete bullet;
+    }
+    bullets.clear();
+
+    for (auto enemy : enemies)
+    {
+        delete enemy;
+    }
+    enemies.clear();
+}
+
+void GameManager::CreatePlayer(HWND hWnd)
+{
+    // 기존 플레이어 객체 삭제
+    if (playerFighter)
+    {
+        delete playerFighter;
+        playerFighter = nullptr; // 삭제 후 nullptr로 설정
+    }
+
+    // 새 플레이어 객체 생성
     playerFighter = new Fighter(PLAYER_START_X, PLAYER_START_Y, L"resource\\image\\fighter.png");
     if (!playerFighter)
     {
         MessageBox(hWnd, L"Player fighter initialization failed!", L"Error", MB_OK);
         PostQuitMessage(0);
     }
+
     playerFighter->SetBoundary(0, 0, winWidth, winHeight);
+}
+
+
+void GameManager::CreateEnemy()
+{
+    int x = rand() % (winWidth - 250);
+    if (score >= 1000)
+    {
+        enemies.push_back(new AdvancedEnemy(x, 0, L"resource\\image\\advanced_enemy.png"));
+    }
+    enemies.push_back(new Enemy(x, 0, L"resource\\image\\enemy.png"));
 }
 
 void GameManager::Update(HWND hWnd, WPARAM wParam)
@@ -59,16 +96,6 @@ void GameManager::UpdatePlayer()
     if (GetAsyncKeyState(VK_DOWN) & 0x8000) playerFighter->Move(0, 10);
 
     playerFighter->SetBoundary(0, 0, winWidth - 200, winHeight);
-}
-
-void GameManager::CreateEnemy()
-{
-    int x = rand() % (winWidth - 250);
-    if (score >= 1000)
-    {
-        enemies.push_back(new AdvancedEnemy(x, 0, L"resource\\image\\advanced_enemy.png"));
-    }
-    enemies.push_back(new Enemy(x, 0, L"resource\\image\\enemy.png"));
 }
 
 void GameManager::UpdateEnemies()
@@ -111,7 +138,8 @@ void GameManager::HandleCollisions(HWND hWnd)
             if (playerFighter->GetLives() <= 0)
             {
                 // 게임 오버 처리
-                PostQuitMessage(0);
+                GameOver(hWnd);
+                return;
             }
         }
     }
@@ -133,8 +161,12 @@ void GameManager::HandleCollisions(HWND hWnd)
         if (CheckCollision(playerFighter->GetX(), playerFighter->GetY(), playerFighter->GetWidth(), playerFighter->GetHeight(),
             enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight()))
         {
-            // 게임 오버 처리
-            PostQuitMessage(0);
+			playerFighter->TakeDamage();
+            if (playerFighter->GetLives() <= 0)
+            {
+                // 게임 오버 처리
+				GameOver(hWnd);
+            }
         }
     }
 
@@ -182,6 +214,12 @@ void GameManager::Draw(HDC hMemDC)
     {
         bullet->Draw(hMemDC);
     }
+}
+
+void GameManager::GameOver(HWND hWnd)
+{
+    MessageBox(hWnd, L"Game Over!", L"Info", MB_OK);
+    PostQuitMessage(0); // 게임 종료
 }
 
 bool CheckCollision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
