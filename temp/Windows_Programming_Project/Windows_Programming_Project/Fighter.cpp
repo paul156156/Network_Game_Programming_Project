@@ -3,7 +3,7 @@
 Fighter::Fighter(int x, int y, LPCWSTR imagePath)
     : x(x), y(y), lives(3), leftBoundary(0), topBoundary(0), rightBoundary(0), bottomBoundary(0)
 {
-    image = new Gdiplus::Image(imagePath);
+    image = new Image(imagePath);
 }
 
 Fighter::~Fighter()

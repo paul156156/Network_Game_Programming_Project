@@ -1,6 +1,7 @@
 #include "GameManager.h"
 #include <algorithm>
 #include "AdvancedEnemy.h"
+#include "UIhandler.h"
 
 GameManager::GameManager(int width, int height)
     : winWidth(width), winHeight(height), backgroundY(0), score(0), specialAttackCount(0), lastThreshold(0), playerFighter(nullptr)
@@ -135,12 +136,6 @@ void GameManager::HandleCollisions(HWND hWnd)
         {
             playerFighter->TakeDamage();
             bullet->Destroy();
-            if (playerFighter->GetLives() <= 0)
-            {
-                // 게임 오버 처리
-                GameOver(hWnd);
-                return;
-            }
         }
     }
 
@@ -162,11 +157,10 @@ void GameManager::HandleCollisions(HWND hWnd)
             enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight()))
         {
 			playerFighter->TakeDamage();
-            if (playerFighter->GetLives() <= 0)
-            {
-                // 게임 오버 처리
-				GameOver(hWnd);
-            }
+			if (playerFighter->GetLives() <= 0)
+			{
+				delete playerFighter;
+			}
         }
     }
 
@@ -214,12 +208,6 @@ void GameManager::Draw(HDC hMemDC)
     {
         bullet->Draw(hMemDC);
     }
-}
-
-void GameManager::GameOver(HWND hWnd)
-{
-    MessageBox(hWnd, L"Game Over!", L"Info", MB_OK);
-    PostQuitMessage(0); // 게임 종료
 }
 
 bool CheckCollision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)

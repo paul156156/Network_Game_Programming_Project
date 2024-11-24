@@ -15,8 +15,6 @@ public:
     GameManager(int width, int height);
     ~GameManager();
 
-
-
     Fighter*& GetPlayer() { return playerFighter; }
     std::vector<Bullet*>& GetBullets() { return bullets; }
     std::vector<Enemy*>& GetEnemies() { return enemies; }
@@ -34,7 +32,6 @@ public:
     void CreateEnemy();
 
     void Draw(HDC hMemDC);
-	void GameOver(HWND hWnd);
 
 private:
     int winWidth;

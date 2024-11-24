@@ -1,3 +1,4 @@
+#include <windows.h>
 #include "Fighter.h"
 #include "Enemy.h"
 
@@ -6,28 +7,38 @@
 void CreateGameButtons(HWND hWnd, int winWidth, int winHeight, HINSTANCE hInstance)
 {
     CreateWindow(
-        L"BUTTON", L"Resume", WS_TABSTOP | WS_CHILD | BS_DEFPUSHBUTTON,
-        winWidth / 2 - 50, winHeight / 2 - 70, 100, 40, hWnd, (HMENU)1, hInstance, NULL
+        L"BUTTON", L"Single Play", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        winWidth / 2 - 50, winHeight / 2 - 120, 100, 40, hWnd, (HMENU)6, hInstance, NULL
     );
 
     CreateWindow(
-        L"BUTTON", L"Start", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        winWidth / 2 - 50, winHeight / 2 - 20, 100, 40, hWnd, (HMENU)2, hInstance, NULL
+        L"BUTTON", L"Multi Play", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        winWidth / 2 - 50, winHeight / 2 - 70, 100, 40, hWnd, (HMENU)7, hInstance, NULL
+    );
+
+    CreateWindow(
+        L"BUTTON", L"Resume", WS_TABSTOP | WS_CHILD | BS_DEFPUSHBUTTON,
+        winWidth / 2 - 50, winHeight / 2 - 20, 100, 40, hWnd, (HMENU)1, hInstance, NULL
+    );
+
+    CreateWindow(
+        L"BUTTON", L"Start", WS_TABSTOP | WS_CHILD | BS_DEFPUSHBUTTON,
+        winWidth / 2 - 50, winHeight / 2 + 30, 100, 40, hWnd, (HMENU)2, hInstance, NULL
     );
 
     CreateWindow(
         L"BUTTON", L"Restart", WS_TABSTOP | WS_CHILD | BS_DEFPUSHBUTTON,
-        winWidth / 2 - 50, winHeight / 2 - 20, 100, 40, hWnd, (HMENU)3, hInstance, NULL
+        winWidth / 2 - 50, winHeight / 2 + 30, 100, 40, hWnd, (HMENU)3, hInstance, NULL
     );
 
     CreateWindow(
-        L"BUTTON", L"Toggle Music", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        winWidth / 2 - 50, winHeight / 2 + 30, 100, 40, hWnd, (HMENU)4, hInstance, NULL
+        L"BUTTON", L"Toggle Music", WS_TABSTOP | WS_CHILD | BS_DEFPUSHBUTTON,
+        winWidth / 2 - 50, winHeight / 2 + 80, 100, 40, hWnd, (HMENU)4, hInstance, NULL
     );
 
     CreateWindow(
-        L"BUTTON", L"Quit", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        winWidth / 2 - 50, winHeight / 2 + 80, 100, 40, hWnd, (HMENU)5, hInstance, NULL
+        L"BUTTON", L"Quit", WS_TABSTOP | WS_CHILD | BS_DEFPUSHBUTTON,
+        winWidth / 2 - 50, winHeight / 2 + 130, 100, 40, hWnd, (HMENU)5, hInstance, NULL
     );
 }
 
@@ -49,9 +60,44 @@ void HideMenu(HWND hWnd)
 
 void ShowInitialUIState(HWND hWnd)
 {
-    // 초기 상태에서 Resume와 Restart 버튼 숨기기
-    ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE); // Resume
-    ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE); // Restart
+    // 초기 상태에서 Resume, Start, Restart, Toggle Music, Quit 버튼 숨기기
+    ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE);
+    ShowWindow(GetDlgItem(hWnd, 2), SW_HIDE);
+    ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE);
+    ShowWindow(GetDlgItem(hWnd, 4), SW_HIDE);
+    ShowWindow(GetDlgItem(hWnd, 5), SW_HIDE);
+
+}
+
+void ShowGameOverMenu(HWND hWnd)
+{
+	ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE); // Resume
+	ShowWindow(GetDlgItem(hWnd, 2), SW_HIDE); // Start
+    ShowWindow(GetDlgItem(hWnd, 3), SW_SHOW); // Restart
+	ShowWindow(GetDlgItem(hWnd, 4), SW_SHOW); // Toggle Music
+	ShowWindow(GetDlgItem(hWnd, 5), SW_SHOW); // Quit
+}
+
+void HandleSinglePlay(HWND hWnd)
+{
+    ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE);
+    ShowWindow(GetDlgItem(hWnd, 2), SW_SHOW);
+    ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE);
+    ShowWindow(GetDlgItem(hWnd, 4), SW_SHOW);
+    ShowWindow(GetDlgItem(hWnd, 5), SW_SHOW);
+	ShowWindow(GetDlgItem(hWnd, 6), SW_HIDE);
+    ShowWindow(GetDlgItem(hWnd, 7), SW_HIDE);
+}
+
+void HandleMultiPlay(HWND hWnd)
+{
+    ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE);
+    ShowWindow(GetDlgItem(hWnd, 2), SW_SHOW);
+    ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE);
+    ShowWindow(GetDlgItem(hWnd, 4), SW_SHOW);
+    ShowWindow(GetDlgItem(hWnd, 5), SW_SHOW);
+    ShowWindow(GetDlgItem(hWnd, 6), SW_HIDE);
+    ShowWindow(GetDlgItem(hWnd, 7), SW_HIDE);
 }
 
 void HandleResume(HWND hWnd, bool& paused) {

@@ -154,8 +154,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         {
 			BACKGROUND_Y += BACKGROUND_SPEED;
 			gameManager->Update(hWnd, wParam);
-            InvalidateRect(hWnd, NULL, FALSE); // 화면 갱신 요청
+
+            // 플레이어의 생명이 0인지 확인
+            if (gameManager->GetPlayer()->GetLives() <= 0)
+            {
+                gameStarted = false;
+                paused = true;
+                ShowGameOverMenu(hWnd); // 메뉴 표시
+            }
         }
+
+        InvalidateRect(hWnd, NULL, FALSE); // 화면 갱신 요청
+
         break;
 
     case WM_COMMAND:
@@ -168,6 +178,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             break;
         case 4: HandleToggleMusic(musicPlaying); break;
         case 5: HandleQuit(); break;
+        case 6: HandleSinglePlay(hWnd); break;
+		case 7: HandleMultiPlay(hWnd); break;
         }
         InvalidateRect(hWnd, NULL, FALSE);
         break;
