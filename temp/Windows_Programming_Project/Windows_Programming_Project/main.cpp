@@ -1,19 +1,24 @@
+#pragma once 
+#include "sockH.h"
 #include <windows.h>
 #include <gdiplus.h>
 #include <tchar.h>
 #include <mmsystem.h>
 #include <vector>
 #include <algorithm>
+#include <iostream>
 #include "Fighter.h"
 #include "Enemy.h"
 #include "AdvancedEnemy.h"
 #include "Bullet.h"
 #include "UIhandler.h"
 #include "GameManager.h"
-#include <iostream>
+#include "err.h"
+
 
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "winmm.lib")
+
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Class Name";
@@ -22,7 +27,12 @@ LPCTSTR lpszWindowName = L"RAIDEN";
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
 GameManager* gameManager = nullptr;
+#define SERVERPORT 9000
+#define BUFSIZE    512
+char* SERVERIP = (char*)"192.168.219.103";
+char buf[BUFSIZE + 1];
 
+SOCKET sock;
 const int winWidth = 700;
 const int winHeight = 800;
 
@@ -42,6 +52,11 @@ bool showMenu = false;
 bool musicPlaying = true;
 bool paused = false;
 bool gameOver = false;
+void PlayerMove(Fighter& player, SOCKET& sock);
+void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock);
+void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock);
+void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager);
+void InitSocket();
 
 Image* LoadPNG(LPCWSTR filePath)
 {
@@ -108,6 +123,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
     SetTimer(hWnd, 1, 50, NULL);
     SetTimer(hWnd, 2, 1000, NULL);
 
+    InitSocket();
+
     while (GetMessage(&Message, NULL, 0, 0))
     {
         TranslateMessage(&Message);
@@ -153,6 +170,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         if (!paused && gameStarted)
         {
 			BACKGROUND_Y += BACKGROUND_SPEED;
+            
+            PlayerMove(*gameManager->GetPlayer(),sock);
+            recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
+            SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
+            RecvPlayerBullet(sock, *gameManager);
 			gameManager->Update(hWnd, wParam);
 
             // 플레이어의 생명이 0인지 확인
@@ -173,7 +195,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         {
         case 1: HandleResume(hWnd, paused); break;
         case 2: HandleStart(hWnd, gameStarted, showMenu); break;
-        case 3: HandleRestart(hWnd, gameManager->GetBullets(), gameManager->GetEnemies(), gameManager->GetPlayer(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), gameStarted, showMenu, paused, gameOver, winWidth, winHeight); 
+        case 3: HandleRestart(hWnd, gameManager->GetEnemyBullets(), gameManager->GetPlayer1Bullets(), gameManager->GetPlayer2Bullets(), gameManager->GetEnemies(), gameManager->GetPlayer(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), gameStarted, showMenu, paused, gameOver, winWidth, winHeight);
 			BACKGROUND_Y = 0;
             break;
         case 4: HandleToggleMusic(musicPlaying); break;
@@ -226,7 +248,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         case VK_SPACE:
             if (gameStarted && !paused) // 게임이 시작되고 일시 정지되지 않은 경우에만 총알 발사
             {
-                gameManager->GetPlayer()->FireBullet(gameManager->GetBullets(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), winWidth);
+                gameManager->GetPlayer()->FireBullet(gameManager->GetPlayer1Bullets(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), winWidth);
             }
             break;
         case VK_ESCAPE:
@@ -268,4 +290,174 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
     }
 
     return 0;
+}
+
+
+
+
+
+struct CS_MOVE_PLAYER { Fighter& player; };
+void PlayerMove(Fighter& player, SOCKET& sock)
+{
+    int xy[2];
+    xy[0] = player.GetX();
+    xy[1] = player.GetY();
+    cout << xy[0] << " " << xy[1] << endl;
+    int retval, len;
+
+    len = sizeof(xy);
+
+    if (sock == INVALID_SOCKET) {
+        MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
+        return;
+    }
+    retval = send(sock, (char*)&len, sizeof(int), 0);
+
+    if (retval == SOCKET_ERROR)
+    {
+        cout << "err";
+        err_display("send()");
+        return;
+    }
+
+    retval = send(sock, (const char*)xy, len, 0);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("send()");
+        return;
+    }
+}
+void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock)
+{
+    int xy[2];
+    int retval, len;
+
+    retval = recv(sock, (char*)&len, sizeof(int), MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+
+    retval = recv(sock, (char*)xy, len, MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+
+    anotherplayerFighter.SetX(xy[0]);
+    anotherplayerFighter.SetY(xy[1]);
+}
+
+struct BulletData { int x, y; bool destroy, send; };
+void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock)
+{
+    vector<BulletData> BD;
+    for (auto bullet : _bullets)
+    {
+        if (bullet->IsSend())
+            continue;
+        BulletData data = { bullet->GetX(),bullet->GetY(),bullet->IsDestroyed(),bullet->IsSend() };
+        BD.push_back(data);
+    }
+
+
+    int retval, len, bulletcnt;
+    len = sizeof(BulletData) * BD.size();
+    bulletcnt = (int)BD.size();
+    if (sock == INVALID_SOCKET) {
+        MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
+        return;
+    }
+    retval = send(sock, (char*)&bulletcnt, sizeof(int), 0);
+
+    if (retval == SOCKET_ERROR)
+    {
+
+        err_display("send()");
+        return;
+    }
+    if (bulletcnt == 0)
+        return;
+
+    retval = send(sock, (const char*)BD.data(), len, 0);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("send()");
+        return;
+    }
+
+    for (auto& bullet : _bullets)
+        bullet->Send();
+}
+void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager)
+{
+    int retval, len, bulletcnt = 0;
+
+    retval = recv(sock, (char*)&bulletcnt, sizeof(int), MSG_WAITALL);
+    int error_code = WSAGetLastError();
+    if (retval == SOCKET_ERROR)
+    {
+        std::cerr << "Error: recv() failed with error code " << error_code << std::endl;
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+
+    if (bulletcnt == 0)
+        return;
+
+    vector<BulletData> BD(bulletcnt);
+
+    retval = recv(sock, (char*)BD.data(), sizeof(BulletData) * bulletcnt, MSG_WAITALL);
+    error_code = WSAGetLastError();
+    if (retval == SOCKET_ERROR)
+    {
+        std::cerr << "Error: recv() failed with error code " << error_code << std::endl;
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+
+    for (auto bullet : BD)
+        gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
+
+
+}
+
+void InitSocket()
+{
+    int retval;
+    // 윈속 초기화
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+        exit(0);
+
+    // 소켓 생성
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock == INVALID_SOCKET) {
+        MessageBoxA(NULL, "소켓 생성 실패", "오류", MB_OK | MB_ICONERROR);
+        WSACleanup();
+        exit(1);
+    }
+
+
+
+    // connect()
+    struct sockaddr_in serveraddr;
+    memset(&serveraddr, 0, sizeof(serveraddr));
+    serveraddr.sin_family = AF_INET;
+    inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
+    serveraddr.sin_port = htons(SERVERPORT);
+    retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
+    if (retval == SOCKET_ERROR) err_quit("connect()");
+
+    
 }

@@ -39,7 +39,7 @@ void Fighter::SetBoundary(int left, int top, int right, int bottom)
     bottomBoundary = bottom;
 }
 
-void Fighter::FireBullet(std::vector<Bullet*>& bullets, int score, int& specialAttackCount, int winWidth)
+void Fighter::FireBullet(std::vector<Bullet*>& Player1bullets, int score, int& specialAttackCount, int winWidth)
 {
     int bulletX = x + GetWidth() / 2 - 10;
     int bulletY = y - 10;
@@ -48,20 +48,46 @@ void Fighter::FireBullet(std::vector<Bullet*>& bullets, int score, int& specialA
     {
         for (int i = 0; i < winWidth - 200; i += 50)
         {
-            bullets.push_back(new Bullet(i, bulletY + 20, -1, L"resource\\image\\special_bullet.png"));
-            bullets.push_back(new Bullet(i, bulletY - 20, -1, L"resource\\image\\special_bullet.png"));
-            bullets.push_back(new Bullet(i, bulletY - 60, -1, L"resource\\image\\special_bullet.png"));
+            Player1bullets.push_back(new Bullet(i, bulletY + 20, -1, L"resource\\image\\special_bullet.png"));
+            Player1bullets.push_back(new Bullet(i, bulletY - 20, -1, L"resource\\image\\special_bullet.png"));
+            Player1bullets.push_back(new Bullet(i, bulletY - 60, -1, L"resource\\image\\special_bullet.png"));
         }
 		specialAttackCount--;
     }
 
     if (score >= 1000)
     {
-        bullets.push_back(new Bullet(bulletX - 40, bulletY, -1, L"resource\\image\\bullet.png"));
-        bullets.push_back(new Bullet(bulletX, bulletY, -1, L"resource\\image\\bullet.png"));
+        Player1bullets.push_back(new Bullet(bulletX - 40, bulletY, -1, L"resource\\image\\bullet.png"));
+        Player1bullets.push_back(new Bullet(bulletX, bulletY, -1, L"resource\\image\\bullet.png"));
     }
     else
     {
-        bullets.push_back(new Bullet(bulletX, bulletY, -1, L"resource\\image\\bullet.png"));
+        Player1bullets.push_back(new Bullet(bulletX, bulletY, -1, L"resource\\image\\bullet.png"));
+    }
+}
+void Fighter::FireBullet(int x,int y,std::vector<Bullet*>& Player2bullets, int score, int& specialAttackCount, int winWidth)
+{
+    int bulletX = x;
+    int bulletY = y;
+
+    if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && specialAttackCount > 0)
+    {
+        for (int i = 0; i < winWidth - 200; i += 50)
+        {
+            Player2bullets.push_back(new Bullet(i, bulletY + 20, -1, L"resource\\image\\special_bullet.png"));
+            Player2bullets.push_back(new Bullet(i, bulletY - 20, -1, L"resource\\image\\special_bullet.png"));
+            Player2bullets.push_back(new Bullet(i, bulletY - 60, -1, L"resource\\image\\special_bullet.png"));
+        }
+        specialAttackCount--;
+    }
+
+    if (score >= 1000)
+    {
+        Player2bullets.push_back(new Bullet(bulletX - 40, bulletY, -1, L"resource\\image\\bullet.png"));
+        Player2bullets.push_back(new Bullet(bulletX, bulletY, -1, L"resource\\image\\bullet.png"));
+    }
+    else
+    {
+        Player2bullets.push_back(new Bullet(bulletX, bulletY, -1, L"resource\\image\\bullet.png"));
     }
 }

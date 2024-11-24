@@ -1,9 +1,13 @@
 #pragma once
+
 #include <windows.h>
 #include <vector>
 #include "Fighter.h"
 #include "Bullet.h"
 #include "Enemy.h"
+
+
+using namespace std;
 
 class GameManager
 {
@@ -16,13 +20,18 @@ public:
     ~GameManager();
 
     Fighter*& GetPlayer() { return playerFighter; }
-    std::vector<Bullet*>& GetBullets() { return bullets; }
+    Fighter*& GetPlayerAnother() { return anotherplayerFighter; }
+    std::vector<Bullet*>& GetEnemyBullets() { return Enemybullets; }
+    std::vector<Bullet*>& GetPlayer1Bullets() { return Player1bullets; }
+    std::vector<Bullet*>& GetPlayer2Bullets() { return Player2bullets; }
     std::vector<Enemy*>& GetEnemies() { return enemies; }
     int& GetScore() { return score; }
     int& GetSpecialAttackCount() { return specialAttackCount; }
 
     void SetPlayer(Fighter* newPlayer) { playerFighter = newPlayer; }
-	void SetBullets(std::vector<Bullet*>& newBullets) { bullets = newBullets; }
+	void SetEnemyBullets(std::vector<Bullet*>& newBullets) { Enemybullets = newBullets; }
+	void SetPlayer1Bullets(std::vector<Bullet*>& newBullets) { Player1bullets = newBullets; }
+	void SetPlayer2Bullets(std::vector<Bullet*>& newBullets) { Player2bullets = newBullets; }
 	void SetEnemies(std::vector<Enemy*>& newEnemies) { enemies = newEnemies; }
 
     void Initialize();
@@ -30,6 +39,7 @@ public:
     void Update(HWND hWnd, WPARAM wParam);
     void HandleCollisions(HWND hWnd);
     void CreateEnemy();
+ 
 
     void Draw(HDC hMemDC);
 
@@ -42,13 +52,20 @@ private:
     int lastThreshold;
 
     Fighter* playerFighter;
-    std::vector<Bullet*> bullets;
+    Fighter* anotherplayerFighter;
+    std::vector<Bullet*> Enemybullets;
+    std::vector<Bullet*> Player1bullets;
+    std::vector<Bullet*> Player2bullets;
     std::vector<Enemy*> enemies;
+    SOCKET sock;
+   
 
-    void UpdatePlayer();
+    void UpdatePlayer(HWND hWnd);
     void UpdateEnemies();
     void UpdateBullets();
     void UpdateSpecialAttackCount();
 };
 
 bool CheckCollision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2);
+
+

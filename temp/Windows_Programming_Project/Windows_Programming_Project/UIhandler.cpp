@@ -120,7 +120,7 @@ void HandleStart(HWND hWnd, bool& gameStarted, bool& showMenu) {
     SetTimer(hWnd, 2, 1000, NULL); // 1초마다 새로운 적 생성
 }
 
-void HandleRestart(HWND hWnd, std::vector<Bullet*>& bullets, std::vector<Enemy*>& enemies, Fighter*& playerFighter, int& score, int& specialAttackCount, bool& gameStarted, bool& showMenu, bool& paused, bool& gameOver, int winWidth, int winHeight) {
+void HandleRestart(HWND hWnd, std::vector<Bullet*>& Enemybullets, std::vector<Bullet*>& Player1bullets, std::vector<Bullet*>& Player2bullets, std::vector<Enemy*>& enemies, Fighter*& playerFighter, int& score, int& specialAttackCount, bool& gameStarted, bool& showMenu, bool& paused, bool& gameOver, int winWidth, int winHeight) {
     const int PLAYER_START_X = 225;
     const int PLAYER_START_Y = 700;
 
@@ -133,10 +133,18 @@ void HandleRestart(HWND hWnd, std::vector<Bullet*>& bullets, std::vector<Enemy*>
     gameOver = false;
 
     // 총알 초기화
-    for (auto bullet : bullets) {
+    for (auto bullet : Enemybullets) {
         delete bullet;
     }
-    bullets.clear();
+    Enemybullets.clear();
+    for (auto bullet : Player1bullets) {
+        delete bullet;
+    }
+    Player1bullets.clear();
+    for (auto bullet : Player2bullets) {
+        delete bullet;
+    }
+    Player2bullets.clear();
 
     // 적 초기화
     for (auto enemy : enemies) {

@@ -6,6 +6,7 @@
 
 using namespace Gdiplus;
 
+
 class Fighter
 {
 public:
@@ -19,10 +20,13 @@ public:
 
     int GetX() const { return x; }
     int GetY() const { return y; }
+    void SetX(int _x) { x = _x; }
+    void SetY(int _y) { y = _y; }
     int GetWidth() const { return image ? image->GetWidth() : 0; }
     int GetHeight() const { return image ? image->GetHeight() : 0; }
 
     void FireBullet(std::vector<Bullet*>& bullets, int score, int& specialAttackCount, int winWidth);
+    void FireBullet(int x, int y, std::vector<Bullet*>& Player1bullets, int score, int& specialAttackCount, int winWidth);
 
 private:
     int x, y;
