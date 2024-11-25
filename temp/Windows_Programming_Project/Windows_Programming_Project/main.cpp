@@ -56,6 +56,7 @@ void PlayerMove(Fighter& player, SOCKET& sock);
 void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock);
 void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock);
 void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager);
+void IsPlayerDead(bool _dead);
 void InitSocket();
 
 Image* LoadPNG(LPCWSTR filePath)
@@ -171,19 +172,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         {
 			BACKGROUND_Y += BACKGROUND_SPEED;
             
-            PlayerMove(*gameManager->GetPlayer(),sock);
-            recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
-            SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
-            RecvPlayerBullet(sock, *gameManager);
+           
 			gameManager->Update(hWnd, wParam);
 
             // 플레이어의 생명이 0인지 확인
             if (gameManager->GetPlayer()->GetLives() <= 0)
             {
+                gameManager->SetPlayerDead(true);
                 gameStarted = false;
                 paused = true;
                 ShowGameOverMenu(hWnd); // 메뉴 표시
             }
+
+            PlayerMove(*gameManager->GetPlayer(), sock);
+            recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
+            SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
+            RecvPlayerBullet(sock, *gameManager);
+            IsPlayerDead(gameManager->GetPlayerDead());
         }
 
         InvalidateRect(hWnd, NULL, FALSE); // 화면 갱신 요청
@@ -197,6 +202,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         case 2: HandleStart(hWnd, gameStarted, showMenu); break;
         case 3: HandleRestart(hWnd, gameManager->GetEnemyBullets(), gameManager->GetPlayer1Bullets(), gameManager->GetPlayer2Bullets(), gameManager->GetEnemies(), gameManager->GetPlayer(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), gameStarted, showMenu, paused, gameOver, winWidth, winHeight);
 			BACKGROUND_Y = 0;
+            gameManager->SetPlayerDead(false);
             break;
         case 4: HandleToggleMusic(musicPlaying); break;
         case 5: HandleQuit(); break;
@@ -460,4 +466,22 @@ void InitSocket()
     if (retval == SOCKET_ERROR) err_quit("connect()");
 
     
+}
+
+void IsPlayerDead(bool _dead)
+{
+    int retval;
+    bool dead = _dead;
+
+    if (sock == INVALID_SOCKET) {
+        MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
+        return;
+    }
+    retval = send(sock, (char*)&dead, sizeof(dead), 0);
+
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("send()");
+        return;
+    }
 }

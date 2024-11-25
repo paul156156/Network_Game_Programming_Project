@@ -27,12 +27,14 @@ public:
     std::vector<Enemy*>& GetEnemies() { return enemies; }
     int& GetScore() { return score; }
     int& GetSpecialAttackCount() { return specialAttackCount; }
+    bool GetPlayerDead() { return playerdead; }
 
     void SetPlayer(Fighter* newPlayer) { playerFighter = newPlayer; }
 	void SetEnemyBullets(std::vector<Bullet*>& newBullets) { Enemybullets = newBullets; }
 	void SetPlayer1Bullets(std::vector<Bullet*>& newBullets) { Player1bullets = newBullets; }
 	void SetPlayer2Bullets(std::vector<Bullet*>& newBullets) { Player2bullets = newBullets; }
 	void SetEnemies(std::vector<Enemy*>& newEnemies) { enemies = newEnemies; }
+    void SetPlayerDead(bool _dead) { playerdead = _dead; }
 
     void Initialize();
     void CreatePlayer(HWND hWnd);
@@ -51,6 +53,9 @@ private:
     int specialAttackCount;
     int lastThreshold;
 
+
+    bool playerdead = false;
+    bool anotherplayerdead = false;
     Fighter* playerFighter;
     Fighter* anotherplayerFighter;
     std::vector<Bullet*> Enemybullets;

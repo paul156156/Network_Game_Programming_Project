@@ -193,6 +193,26 @@ void RecvPlayerBullet(PlayerSock* PS)
 	}
 	LeaveCriticalSection(&cs);
 }
+void IsPlayerDead(PlayerSock* PS)
+{
+	int retval;
+	bool dead = false;
+
+	if (PS->client_sock == INVALID_SOCKET) {
+		MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
+		return;
+	}
+	retval = recv(PS->client_sock, (char*)&dead, sizeof(dead), 0);
+
+	if (retval == SOCKET_ERROR)
+	{
+		err_display("recv()");
+		return;
+	}
+
+	if (dead)
+		cout << "플레이어 사망" << endl;
+}
 
 struct clientinfo
 {
@@ -276,6 +296,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 		RecvPlayerBullet(&PS[clientId]);
 		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
+		IsPlayerDead(&PS[clientId]);
 		//cout << "본인 클라이언트:" << clientId << "\t" << "보내는 클라이언트:" << (clientId + 1) % 2 << endl;
 	}
 
