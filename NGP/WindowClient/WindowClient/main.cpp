@@ -29,7 +29,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 GameManager* gameManager = nullptr;
 #define SERVERPORT 9000
 #define BUFSIZE    512
-char* SERVERIP = (char*)"127.0.0.1";
+char* SERVERIP = (char*)"192.168.219.103";
 char buf[BUFSIZE + 1];
 
 SOCKET sock;
@@ -462,6 +462,8 @@ void InitSocket()
         exit(1);
     }
 
+    int opt_val = TRUE;
+    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char*)&opt_val, sizeof(opt_val));
 
 
     // connect()
@@ -501,20 +503,34 @@ DWORD WINAPI PlayerThread(LPVOID arg)
     while (1)
     {
         EnterCriticalSection(&cs);
-        cout << "start" << endl;
+        //cout << "start" << endl;
         PlayerMove(*gameManager->GetPlayer(), sock);
-        cout << "playermove" << endl;
+        //cout << "playermove" << endl;
         recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
-        cout << "recvplayermove" << endl;
+        //cout << "recvplayermove" << endl;
         SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
-        cout << "sendplayerbul" << endl;
+        //cout << "sendplayerbul" << endl;
         RecvPlayerBullet(sock, *gameManager);
-        cout << "recvplayermovebul" << endl;
+        //cout << "recvplayermovebul" << endl;
+        IsPlayerDead(gameManager->GetPlayerDead());
+        //cout << "playerdead" << endl;
+        LeaveCriticalSection(&cs);
+    }
+  
+
+    return 0;
+}
+
+
+DWORD WINAPI DeadThread(LPVOID arg)
+{
+    while (1)
+    {
+        EnterCriticalSection(&cs);
         IsPlayerDead(gameManager->GetPlayerDead());
         cout << "playerdead" << endl;
         LeaveCriticalSection(&cs);
     }
-  
 
     return 0;
 }
