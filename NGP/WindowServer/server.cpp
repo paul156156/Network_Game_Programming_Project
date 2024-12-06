@@ -14,7 +14,16 @@
 #include <vector>
 #include <queue>
 
+#include <random>
+#include <chrono>
+
 #pragma comment(lib, "ws2_32") // ws2_32.lib 링크
+
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_int_distribution<> distrib(1, 400); 
+bool isRunning = true;
+bool isGameRunning = false; // 모든 클라이언트가 준비되었는지 여부
 
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)
@@ -71,6 +80,7 @@ struct PlayerSock {
 	SOCKET client_sock;
 	vector<BulletData> BulletVector;
 	int x = 0, y = 0;
+	bool isGameStarted = false;
 };
 
 PlayerSock PS[2];
@@ -155,6 +165,7 @@ void SendPlayerBullet(PlayerSock* send_PS, PlayerSock* recv_PS)
 
 	send_PS->BulletVector.clear();
 }
+
 void RecvPlayerBullet(PlayerSock* PS)
 {
 	int retval, len, bulletcnt;
@@ -214,11 +225,74 @@ void IsPlayerDead(PlayerSock* PS)
 		cout << "플레이어 사망" << endl;
 }
 
+void RecvGameStart(PlayerSock* PS) {
+	bool isGameStarted = false;
+	int retval = recv(PS->client_sock, (char*)&isGameStarted, sizeof(isGameStarted), MSG_WAITALL);
+	if (retval == SOCKET_ERROR) {
+		err_display("recv() GameStart");
+		return;
+	}
+	PS->isGameStarted = isGameStarted;
+
+	cout << "Client is ready: " << isGameStarted << endl;
+}
+
 struct clientinfo
 {
 	int id;
 	SOCKET client;
 };
+
+DWORD WINAPI EnemySenderThread(LPVOID arg)
+{
+	PlayerSock* PS = (PlayerSock*)arg;
+	const int clientCount = 2;
+
+	while (isRunning)
+	{
+		Sleep(1000);
+
+		if (!isGameRunning) continue;
+
+		bool hasClients = false;
+		for (int i = 0; i < clientCount; i++)
+		{
+			if (PS[i].client_sock != INVALID_SOCKET)
+			{
+				hasClients = true;
+				break;
+			}
+		}
+		if (!hasClients) continue;
+
+		int xy[2] = { distrib(gen), distrib(gen) };
+		int len = sizeof(xy);
+
+		for (int i = 0; i < clientCount; i++)
+		{
+			if (PS[i].client_sock != INVALID_SOCKET)
+			{
+				int retval = send(PS[i].client_sock, (char*)&len, sizeof(int), 0);
+				if (retval == SOCKET_ERROR)
+				{
+					cerr << "Error sending length to client " << i << ": " << WSAGetLastError() << endl;
+					continue;
+				}
+
+				retval = send(PS[i].client_sock, (char*)xy, len, 0);
+				if (retval == SOCKET_ERROR)
+				{
+					cerr << "Error sending data to client " << i << ": " << WSAGetLastError() << endl;
+					continue;
+				}
+
+				cout << "Enemy position sent to client " << i << ": x=" << xy[0] << ", y=" << xy[1] << endl;
+			}
+		}
+	}
+
+	return 0;
+}
 
 DWORD WINAPI ProcessClient(LPVOID arg)
 {
@@ -250,7 +324,24 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		return 0;
 	}
 
-	while (1)
+	bool isGameStarted = false;
+	retval = recv(client_sock, (char*)&isGameStarted, sizeof(isGameStarted), MSG_WAITALL);
+	if (retval == SOCKET_ERROR || retval == 0) {
+		err_display("recv() GameStart");
+		closesocket(client_sock);
+		return 0;
+	}
+	PS[clientId].isGameStarted = isGameStarted;
+	cout << "Client " << clientId << " is ready: " << isGameStarted << endl;
+
+	EnterCriticalSection(&cs);
+	if (PS[0].isGameStarted && PS[1].isGameStarted) {
+		isGameRunning = true;
+		cout << "Both clients are ready. Starting game!" << endl;
+	}
+	LeaveCriticalSection(&cs);
+
+	while (isGameRunning)
 	{
 		int xy[2];
 
@@ -291,9 +382,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			err_display("send()");
 			break;
 		}
-
-
-
+		
 		RecvPlayerBullet(&PS[clientId]);
 		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
 		IsPlayerDead(&PS[clientId]);
@@ -337,6 +426,13 @@ int main(int argc, char* argv[])
 	retval = listen(listen_sock, SOMAXCONN);
 	if (retval == SOCKET_ERROR) err_quit("listen()");
 
+	// 적 좌표 전송 스레드 생성
+	HANDLE hEnemyThread = CreateThread(NULL, 0, EnemySenderThread, (LPVOID)PS, 0, NULL);
+	if (hEnemyThread == NULL)
+	{
+		err_display("CreateThread() for EnemySenderThread");
+		return 1;
+	}
 
 	SOCKET client_sock;
 	struct sockaddr_in clientaddr;
@@ -414,6 +510,8 @@ int main(int argc, char* argv[])
 		Sleep(200);*/	
 	}
 
+	isRunning = false; // 서버 종료 플래그 설정
+	WaitForSingleObject(hEnemyThread, INFINITE); // 적 좌표 스레드 대기
 
 	// 소켓 닫기
 	closesocket(listen_sock);

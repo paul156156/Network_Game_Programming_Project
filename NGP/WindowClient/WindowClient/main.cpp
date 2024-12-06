@@ -53,12 +53,13 @@ bool musicPlaying = true;
 bool paused = false;
 bool gameOver = false;
 
-
 void PlayerMove(Fighter& player, SOCKET& sock);
 void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock);
 void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock);
 void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager);
 void IsPlayerDead(bool _dead);
+void RecvEnemy(GameManager& gameManager, SOCKET& sock);
+void SendGameStart(SOCKET sock);
 void InitSocket();
 
 Image* LoadPNG(LPCWSTR filePath)
@@ -87,7 +88,7 @@ void CreateDebugConsole()
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
     // 디버그 콘솔 생성
-    CreateDebugConsole();
+    //CreateDebugConsole();
 
     HWND hWnd;
     MSG Message;
@@ -186,6 +187,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
                 ShowGameOverMenu(hWnd); // 메뉴 표시
             }
 
+            // 서버 좌표 수신 및 적 생성
+            //RecvEnemy(*gameManager, sock);
+            
             PlayerMove(*gameManager->GetPlayer(), sock);
             recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
             SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
@@ -201,7 +205,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         switch (LOWORD(wParam))
         {
         case 1: HandleResume(hWnd, paused); break;
-        case 2: HandleStart(hWnd, gameStarted, showMenu); break;
+        case 2: HandleStart(hWnd, gameStarted, showMenu); 
+            SendGameStart(sock);
+            break;
         case 3: HandleRestart(hWnd, gameManager->GetEnemyBullets(), gameManager->GetPlayer1Bullets(), gameManager->GetPlayer2Bullets(), gameManager->GetEnemies(), gameManager->GetPlayer(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), gameStarted, showMenu, paused, gameOver, winWidth, winHeight);
             BACKGROUND_Y = 0;
             gameManager->SetPlayerDead(false);
@@ -361,7 +367,6 @@ void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock)
     anotherplayerFighter.SetX(xy[0]);
     anotherplayerFighter.SetY(xy[1]);
 }
-
 struct BulletData { int x, y; bool destroy, send; };
 void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock)
 {
@@ -436,8 +441,38 @@ void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager)
 
     for (auto bullet : BD)
         gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
+}
 
+void RecvEnemy(GameManager& gameManager, SOCKET& sock)
+{
+    int retval, len;
+    int xy[2];
 
+    retval = recv(sock, (char*)&len, sizeof(int), MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+
+    retval = recv(sock, (char*)xy, len, MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv()");
+        return;
+    }
+    else if (retval == 0)
+        return;
+
+    gameManager.CreateEnemy(xy[0], xy[1]);
+}
+
+void SendGameStart(SOCKET sock)
+{
+	bool isGameStarted = true;
+    send(sock, (char*)&isGameStarted, sizeof(isGameStarted), 0);
 }
 
 void InitSocket()

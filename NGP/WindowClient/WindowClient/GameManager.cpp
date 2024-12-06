@@ -17,7 +17,7 @@ GameManager::~GameManager()
     for (auto bullet : Enemybullets) delete bullet;
     for (auto bullet : Player1bullets) delete bullet;
     for (auto bullet : Player2bullets) delete bullet;
-    for (auto enemy : enemies) delete enemy;
+    for (auto enemy : Enemies) delete enemy;
 }
 
 void GameManager::Initialize()
@@ -44,11 +44,11 @@ void GameManager::Initialize()
     }
     Player2bullets.clear();
 
-    for (auto enemy : enemies)
+    for (auto enemy : Enemies)
     {
         delete enemy;
     }
-    enemies.clear();
+    Enemies.clear();
 }
 
 void GameManager::CreatePlayer(HWND hWnd)
@@ -84,15 +84,18 @@ void GameManager::CreatePlayer(HWND hWnd)
 }
 
 
-void GameManager::CreateEnemy()
+void GameManager::CreateEnemy(int x, int y)
 {
-    int x = rand() % (winWidth - 250);
     if (score >= 1000)
     {
-        enemies.push_back(new AdvancedEnemy(x, 0, L"resource\\image\\advanced_enemy.png"));
+        Enemies.push_back(new AdvancedEnemy(x, y, L"resource\\image\\advanced_enemy.png"));
     }
-    enemies.push_back(new Enemy(x, 0, L"resource\\image\\enemy.png"));
+    else
+    {
+        Enemies.push_back(new Enemy(x, y, L"resource\\image\\enemy.png"));
+    }
 }
+
 
 
 void GameManager::Update(HWND hWnd, WPARAM wParam)
@@ -111,10 +114,10 @@ void GameManager::Update(HWND hWnd, WPARAM wParam)
         HandleCollisions(hWnd);
         UpdateSpecialAttackCount();
     }
-    else if (wParam == 2) // 적 생성 타이머
-    {
-        CreateEnemy();
-    }
+    //else if (wParam == 2) // 적 생성 타이머
+    //{
+        //CreateEnemy();
+    //}
 }
 
 void GameManager::UpdatePlayer(HWND hWnd)
@@ -132,7 +135,7 @@ void GameManager::UpdatePlayer(HWND hWnd)
 
 void GameManager::UpdateEnemies()
 {
-    for (auto enemy : enemies)
+    for (auto enemy : Enemies)
     {
         enemy->Move();
         enemy->Attack(Enemybullets);
@@ -204,7 +207,7 @@ void GameManager::HandleCollisions(HWND hWnd)
         }
     }
 
-    for (auto enemy : enemies)
+    for (auto enemy : Enemies)
     {
         //player1 총알 충돌
         for (auto bullet : Player1bullets)
@@ -278,17 +281,14 @@ void GameManager::HandleCollisions(HWND hWnd)
         return false;
         }), Player2bullets.end());
 
-
-
-
-    enemies.erase(std::remove_if(enemies.begin(), enemies.end(), [](Enemy* enemy) {
+    Enemies.erase(std::remove_if(Enemies.begin(), Enemies.end(), [](Enemy* enemy) {
         if (enemy->IsDestroyed())
         {
             delete enemy;
             return true;
         }
         return false;
-        }), enemies.end());
+        }), Enemies.end());
 }
 
 void GameManager::UpdateSpecialAttackCount()
@@ -311,7 +311,7 @@ void GameManager::Draw(HDC hMemDC)
         anotherplayerFighter->Draw(hMemDC);
     }
 
-    for (auto enemy : enemies)
+    for (auto enemy : Enemies)
     {
         enemy->Draw(hMemDC);
     }
