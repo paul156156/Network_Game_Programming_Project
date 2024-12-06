@@ -131,7 +131,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 
     InitSocket();
     InitializeCriticalSection(&cs);
-    hThread = CreateThread(NULL, 0, PlayerThread, NULL, 0, NULL);
+    //hThread = CreateThread(NULL, 0, PlayerThread, NULL, 0, NULL);
 
 
     while (GetMessage(&Message, NULL, 0, 0))
@@ -192,11 +192,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
                 ShowGameOverMenu(hWnd); // 메뉴 표시
             }
 
-           /* PlayerMove(*gameManager->GetPlayer(), sock);
+            PlayerMove(*gameManager->GetPlayer(), sock);
             recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
             SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
             RecvPlayerBullet(sock, *gameManager);
-            IsPlayerDead(gameManager->GetPlayerDead());*/
+            IsPlayerDead(gameManager->GetPlayerDead());
         }   
 
         InvalidateRect(hWnd, NULL, FALSE); // 화면 갱신 요청
@@ -441,7 +441,7 @@ void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager)
         return;
 
     for (auto bullet : BD)
-        gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
+        gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, bulletcnt, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
 
 
 }
@@ -502,7 +502,7 @@ DWORD WINAPI PlayerThread(LPVOID arg)
 {
     while (1)
     {
-        EnterCriticalSection(&cs);
+       
         //cout << "start" << endl;
         PlayerMove(*gameManager->GetPlayer(), sock);
         //cout << "playermove" << endl;
@@ -514,7 +514,7 @@ DWORD WINAPI PlayerThread(LPVOID arg)
         //cout << "recvplayermovebul" << endl;
         IsPlayerDead(gameManager->GetPlayerDead());
         //cout << "playerdead" << endl;
-        LeaveCriticalSection(&cs);
+       
     }
   
 

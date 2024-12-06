@@ -253,7 +253,8 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	while (1)
 	{
 		int xy[2];
-		cout << "start" << endl;
+		//Sleep(1);
+		//cout << "start" << endl;
 		retval = recv(client_sock, (char*)&len, sizeof(int), MSG_WAITALL);
 		if (retval == SOCKET_ERROR)
 		{
@@ -271,7 +272,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		}
 		else if (retval == 0)
 			break;
-		cout << "moverecv" << endl;
+		//cout << "moverecv" << endl;
 		PS[(clientId + 1) % 2].x = xy[0];
 		PS[(clientId + 1) % 2].y = xy[1];
 		
@@ -291,15 +292,15 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			err_display("send()");
 			break;
 		}
-		cout << "movesend" << endl;
+		//cout << "movesend" << endl;
 
 
 		RecvPlayerBullet(&PS[clientId]);
-		cout << "bulrecv" << endl;
+		//cout << "bulrecv" << endl;
 		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
-		cout << "bulsend" << endl;
+		//cout << "bulsend" << endl;
 		IsPlayerDead(&PS[clientId]);
-		cout << "dead" << endl;
+		//cout << "dead" << endl;
 		//cout << "본인 클라이언트:" << clientId << "\t" << "보내는 클라이언트:" << (clientId + 1) % 2 << endl;
 	}
 
