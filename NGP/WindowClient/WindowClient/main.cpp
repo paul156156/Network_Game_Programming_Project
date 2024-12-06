@@ -29,10 +29,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 GameManager* gameManager = nullptr;
 #define SERVERPORT 9000
 #define BUFSIZE    512
-char* SERVERIP = (char*)"127.0.0.1";
+char* SERVERIP = (char*)"192.168.219.103";
 char buf[BUFSIZE + 1];
 
 SOCKET sock;
+CRITICAL_SECTION cs;
 const int winWidth = 700;
 const int winHeight = 800;
 
@@ -60,6 +61,7 @@ void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock);
 void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager);
 void IsPlayerDead(bool _dead);
 void InitSocket();
+DWORD WINAPI PlayerThread(LPVOID arg);
 
 Image* LoadPNG(LPCWSTR filePath)
 {
@@ -89,6 +91,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
     // 디버그 콘솔 생성
     CreateDebugConsole();
 
+    HANDLE hThread;
     HWND hWnd;
     MSG Message;
     WNDCLASSEX WndClass;
@@ -127,6 +130,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
     SetTimer(hWnd, 2, 1000, NULL);
 
     InitSocket();
+    InitializeCriticalSection(&cs);
+    //hThread = CreateThread(NULL, 0, PlayerThread, NULL, 0, NULL);
+
 
     while (GetMessage(&Message, NULL, 0, 0))
     {
@@ -191,7 +197,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
             RecvPlayerBullet(sock, *gameManager);
             IsPlayerDead(gameManager->GetPlayerDead());
-        }
+        }   
 
         InvalidateRect(hWnd, NULL, FALSE); // 화면 갱신 요청
 
@@ -435,7 +441,7 @@ void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager)
         return;
 
     for (auto bullet : BD)
-        gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
+        gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, bulletcnt, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
 
 
 }
@@ -456,6 +462,8 @@ void InitSocket()
         exit(1);
     }
 
+    int opt_val = TRUE;
+    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char*)&opt_val, sizeof(opt_val));
 
 
     // connect()
@@ -486,4 +494,43 @@ void IsPlayerDead(bool _dead)
         err_display("send()");
         return;
     }
+}
+
+
+
+DWORD WINAPI PlayerThread(LPVOID arg)
+{
+    while (1)
+    {
+       
+        //cout << "start" << endl;
+        PlayerMove(*gameManager->GetPlayer(), sock);
+        //cout << "playermove" << endl;
+        recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
+        //cout << "recvplayermove" << endl;
+        SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
+        //cout << "sendplayerbul" << endl;
+        RecvPlayerBullet(sock, *gameManager);
+        //cout << "recvplayermovebul" << endl;
+        IsPlayerDead(gameManager->GetPlayerDead());
+        //cout << "playerdead" << endl;
+       
+    }
+  
+
+    return 0;
+}
+
+
+DWORD WINAPI DeadThread(LPVOID arg)
+{
+    while (1)
+    {
+        EnterCriticalSection(&cs);
+        IsPlayerDead(gameManager->GetPlayerDead());
+        cout << "playerdead" << endl;
+        LeaveCriticalSection(&cs);
+    }
+
+    return 0;
 }
