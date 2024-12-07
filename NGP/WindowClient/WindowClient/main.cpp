@@ -188,14 +188,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             }
 
             // 서버 좌표 수신 및 적 생성
-			if (wParam == 2)
-                RecvEnemy(*gameManager, sock);
-            
+            cout << "sendmoveReady" << endl;
+			
+          
+          
             PlayerMove(*gameManager->GetPlayer(), sock);
+            cout << "sendmove" << endl;
             recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
+            cout << "recv_PlayerMove" << endl;
             SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
+            cout << "SendPlayerBullet" << endl;
             RecvPlayerBullet(sock, *gameManager);
+            cout << "RecvPlayerBullet" << endl;
             IsPlayerDead(gameManager->GetPlayerDead());
+            cout << "IsPlayerDead" << endl;
+            RecvEnemy(*gameManager, sock);
+            cout << "RecvEnemy" << endl;
         }
 
         InvalidateRect(hWnd, NULL, FALSE); // 화면 갱신 요청
@@ -516,7 +524,8 @@ void InitSocket()
         exit(1);
     }
 
-
+    int opt_val = TRUE;
+    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char*)& opt_val, sizeof(opt_val));
 
     // connect()
     struct sockaddr_in serveraddr;
