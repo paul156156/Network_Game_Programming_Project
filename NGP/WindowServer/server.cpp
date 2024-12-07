@@ -15,7 +15,6 @@
 #include <queue>
 
 #include <random>
-#include <chrono>
 
 #pragma comment(lib, "ws2_32") // ws2_32.lib 링크
 
@@ -242,6 +241,7 @@ void RecvGameStart(PlayerSock* PS, int clientId) {
 	if (clientReady[0] && clientReady[1]) {
 		cout << "All clients are ready. Starting the game!" << endl;
 		SetEvent(gamestart); // 이벤트 신호 설정
+		isGameRunning = true; // 게임 시작
 	}
 }
 
@@ -253,48 +253,47 @@ struct clientinfo
 
 DWORD WINAPI EnemySenderThread(LPVOID arg)
 {
-	PlayerSock* PS = (PlayerSock*)arg;
-	const int clientCount = 2;
+	PlayerSock* PS = (PlayerSock*)arg; // 클라이언트 소켓 배열
+	const int clientCount = 2; // 최대 클라이언트 수
 
 	while (isRunning)
 	{
-		Sleep(1000);
+		Sleep(1000); // 1초마다 적 좌표 생성 및 전송
 
-		if (!isGameRunning) continue;
+		if (!isGameRunning) continue; // 게임이 진행 중이 아니면 건너뜀
 
-		bool hasClients = false;
+		// 적 좌표 생성
+		int xy[2] = { distrib(gen), distrib(gen) }; // 무작위 좌표 생성
+		int len = sizeof(xy); // 데이터 길이
+
+		cout << "Sending data length: " << len << " bytes" << endl;
+		cout << "Generated enemy position: x=" << xy[0] << ", y=" << xy[1] << endl;
+
+		// 클라이언트들에게 좌표 전송
 		for (int i = 0; i < clientCount; i++)
 		{
-			if (PS[i].client_sock != INVALID_SOCKET)
+			if (PS[i].client_sock != INVALID_SOCKET) // 유효한 소켓인지 확인
 			{
-				hasClients = true;
-				break;
-			}
-		}
-		if (!hasClients) continue;
-
-		int xy[2] = { distrib(gen), distrib(gen) };
-		int len = sizeof(xy);
-
-		for (int i = 0; i < clientCount; i++)
-		{
-			if (PS[i].client_sock != INVALID_SOCKET)
-			{
-				int retval = send(PS[i].client_sock, (char*)&len, sizeof(int), 0);
+				// 데이터 길이 전송
+				int retval = send(PS[i].client_sock, (char*)&len, sizeof(len), 0);
 				if (retval == SOCKET_ERROR)
 				{
-					cerr << "Error sending length to client " << i << ": " << WSAGetLastError() << endl;
-					continue;
+					cerr << "Error sending data length to client " << i
+						<< ": " << WSAGetLastError() << endl;
+					continue; // 오류 발생 시 해당 클라이언트 건너뜀
 				}
 
+				// 좌표 데이터 전송
 				retval = send(PS[i].client_sock, (char*)xy, len, 0);
 				if (retval == SOCKET_ERROR)
 				{
-					cerr << "Error sending data to client " << i << ": " << WSAGetLastError() << endl;
-					continue;
+					cerr << "Error sending enemy position to client " << i
+						<< ": " << WSAGetLastError() << endl;
+					continue; // 오류 발생 시 해당 클라이언트 건너뜀
 				}
 
-				cout << "Enemy position sent to client " << i << ": x=" << xy[0] << ", y=" << xy[1] << endl;
+				cout << "Sent enemy position to client " << i
+					<< ": x=" << xy[0] << ", y=" << xy[1] << endl;
 			}
 		}
 	}
@@ -422,14 +421,6 @@ int main(int argc, char* argv[])
 	retval = listen(listen_sock, SOMAXCONN);
 	if (retval == SOCKET_ERROR) err_quit("listen()");
 
-	// 적 좌표 전송 스레드 생성
-	//HANDLE hEnemyThread = CreateThread(NULL, 0, EnemySenderThread, (LPVOID)PS, 0, NULL);
-	//if (hEnemyThread == NULL)
-	//{
-	//	err_display("CreateThread() for EnemySenderThread");
-	//	return 1;
-	//}
-
 	SOCKET client_sock;
 	struct sockaddr_in clientaddr;
 	int addrlen;
@@ -490,6 +481,12 @@ int main(int argc, char* argv[])
 		//else { CloseHandle(hThread); }
 	}
 
+	HANDLE hEnemyThread = CreateThread(NULL, 0, EnemySenderThread, (LPVOID)PS, 0, NULL);
+	if (hEnemyThread == NULL) {
+		cerr << "Failed to create enemy sender thread." << endl;
+		return 1;
+	}
+
 	//SetEvent(gamestart);
 	system("cls");
 	while (1)
@@ -507,7 +504,8 @@ int main(int argc, char* argv[])
 	}
 
 	isRunning = false; // 서버 종료 플래그 설정
-	//WaitForSingleObject(hEnemyThread, INFINITE); // 적 좌표 스레드 대기
+	WaitForSingleObject(hEnemyThread, INFINITE); // 스레드 종료 대기
+	CloseHandle(hEnemyThread);
 
 	// 소켓 닫기
 	closesocket(listen_sock);

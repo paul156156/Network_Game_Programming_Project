@@ -72,7 +72,7 @@ void GameManager::CreatePlayer(HWND hWnd)
         MessageBox(hWnd, L"Player fighter initialization failed!", L"Error", MB_OK);
         PostQuitMessage(0);
     }
-    anotherplayerFighter = new Fighter(PLAYER_START_X, PLAYER_START_Y, L"resource\\image\\fighter.png");
+    anotherplayerFighter = new Fighter(PLAYER_START_X + 100, PLAYER_START_Y, L"resource\\image\\fighter_2.png");
     if (!anotherplayerFighter)
     {
         MessageBox(hWnd, L"Player fighter initialization failed!", L"Error", MB_OK);

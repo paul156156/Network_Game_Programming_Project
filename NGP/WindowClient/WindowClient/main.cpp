@@ -88,7 +88,7 @@ void CreateDebugConsole()
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
     // 디버그 콘솔 생성
-    //CreateDebugConsole();
+    CreateDebugConsole();
 
     HWND hWnd;
     MSG Message;
@@ -188,7 +188,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             }
 
             // 서버 좌표 수신 및 적 생성
-            //RecvEnemy(*gameManager, sock);
+			if (wParam == 2)
+                RecvEnemy(*gameManager, sock);
             
             PlayerMove(*gameManager->GetPlayer(), sock);
             recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
@@ -445,28 +446,48 @@ void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager)
 
 void RecvEnemy(GameManager& gameManager, SOCKET& sock)
 {
-    int retval, len;
-    int xy[2];
+    int retval, len = 0;
+    int xy[2] = { 0, 0 };
 
-    retval = recv(sock, (char*)&len, sizeof(int), MSG_WAITALL);
+    // 데이터 크기 수신
+    retval = recv(sock, (char*)&len, sizeof(len), MSG_WAITALL);
     if (retval == SOCKET_ERROR)
     {
-        err_display("recv()");
+        err_display("recv() - Data length");
         return;
     }
     else if (retval == 0)
+    {
+        cerr << "Connection closed by server." << endl;
         return;
+    }
 
+    // 로그 추가: 데이터 크기 확인
+    cout << "Received data length: " << len << " bytes" << endl;
+
+    // 데이터 크기 검증
+    if (len != sizeof(xy))
+    {
+        cerr << "Unexpected data length: " << len << " (Expected: " << sizeof(xy) << ")" << endl;
+        return;
+    }
+
+    // 좌표 데이터 수신
     retval = recv(sock, (char*)xy, len, MSG_WAITALL);
     if (retval == SOCKET_ERROR)
     {
-        err_display("recv()");
+        err_display("recv() - Data");
         return;
     }
     else if (retval == 0)
+    {
+        cerr << "Connection closed by server." << endl;
         return;
+    }
 
+    // 적 생성
     gameManager.CreateEnemy(xy[0], xy[1]);
+    cout << "Enemy created at: x=" << xy[0] << ", y=" << xy[1] << endl;
 }
 
 void SendGameStart(SOCKET sock) {
