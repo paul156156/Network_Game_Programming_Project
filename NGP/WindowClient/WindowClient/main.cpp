@@ -469,10 +469,14 @@ void RecvEnemy(GameManager& gameManager, SOCKET& sock)
     gameManager.CreateEnemy(xy[0], xy[1]);
 }
 
-void SendGameStart(SOCKET sock)
-{
-	bool isGameStarted = true;
-    send(sock, (char*)&isGameStarted, sizeof(isGameStarted), 0);
+void SendGameStart(SOCKET sock) {
+    bool isGameStarted = true; // Game Start ÇÃ·¡±×
+    int retval = send(sock, (char*)&isGameStarted, sizeof(isGameStarted), 0);
+    if (retval == SOCKET_ERROR) {
+        cerr << "Error sending GameStart: " << WSAGetLastError() << endl;
+        return;
+    }
+    cout << "Game Start message sent to server." << endl;
 }
 
 void InitSocket()

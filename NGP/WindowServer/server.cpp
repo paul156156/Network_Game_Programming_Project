@@ -74,6 +74,7 @@ using namespace std;
 CRITICAL_SECTION cs;
 int countid = 0;
 HANDLE gamestart = NULL;
+bool clientReady[2] = { false, false };
 
 struct BulletData { int x, y; bool destroy, send; };
 struct PlayerSock {
@@ -225,16 +226,23 @@ void IsPlayerDead(PlayerSock* PS)
 		cout << "플레이어 사망" << endl;
 }
 
-void RecvGameStart(PlayerSock* PS) {
+void RecvGameStart(PlayerSock* PS, int clientId) {
 	bool isGameStarted = false;
 	int retval = recv(PS->client_sock, (char*)&isGameStarted, sizeof(isGameStarted), MSG_WAITALL);
 	if (retval == SOCKET_ERROR) {
 		err_display("recv() GameStart");
 		return;
 	}
-	PS->isGameStarted = isGameStarted;
 
-	cout << "Client is ready: " << isGameStarted << endl;
+	PS->isGameStarted = isGameStarted;
+	clientReady[clientId] = isGameStarted; // 클라이언트 준비 상태 저장
+	cout << "Client " << clientId << " is ready: " << isGameStarted << endl;
+
+	// 모든 클라이언트가 준비되었는지 확인
+	if (clientReady[0] && clientReady[1]) {
+		cout << "All clients are ready. Starting the game!" << endl;
+		SetEvent(gamestart); // 이벤트 신호 설정
+	}
 }
 
 struct clientinfo
@@ -301,7 +309,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	SOCKET client_sock = Info->client;
 	PS[clientId].client_sock = client_sock;
 
-	WaitForSingleObject(gamestart, INFINITE);
 
 	int retval;
 	struct sockaddr_in clientaddr;
@@ -324,24 +331,13 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		return 0;
 	}
 
-	bool isGameStarted = false;
-	retval = recv(client_sock, (char*)&isGameStarted, sizeof(isGameStarted), MSG_WAITALL);
-	if (retval == SOCKET_ERROR || retval == 0) {
-		err_display("recv() GameStart");
-		closesocket(client_sock);
-		return 0;
-	}
-	PS[clientId].isGameStarted = isGameStarted;
-	cout << "Client " << clientId << " is ready: " << isGameStarted << endl;
+	// Game Start 메시지 수신 대기
+	RecvGameStart(&PS[clientId], clientId);
 
-	EnterCriticalSection(&cs);
-	if (PS[0].isGameStarted && PS[1].isGameStarted) {
-		isGameRunning = true;
-		cout << "Both clients are ready. Starting game!" << endl;
-	}
-	LeaveCriticalSection(&cs);
+	WaitForSingleObject(gamestart, INFINITE); // 게임 시작 대기
 
-	while (isGameRunning)
+
+	while (1)
 	{
 		int xy[2];
 
@@ -427,19 +423,18 @@ int main(int argc, char* argv[])
 	if (retval == SOCKET_ERROR) err_quit("listen()");
 
 	// 적 좌표 전송 스레드 생성
-	HANDLE hEnemyThread = CreateThread(NULL, 0, EnemySenderThread, (LPVOID)PS, 0, NULL);
-	if (hEnemyThread == NULL)
-	{
-		err_display("CreateThread() for EnemySenderThread");
-		return 1;
-	}
+	//HANDLE hEnemyThread = CreateThread(NULL, 0, EnemySenderThread, (LPVOID)PS, 0, NULL);
+	//if (hEnemyThread == NULL)
+	//{
+	//	err_display("CreateThread() for EnemySenderThread");
+	//	return 1;
+	//}
 
 	SOCKET client_sock;
 	struct sockaddr_in clientaddr;
 	int addrlen;
 	char buf[BUFSIZE + 1];
 	HANDLE hThread;
-
 
 	while (1) {
 		// accept()
@@ -494,7 +489,8 @@ int main(int argc, char* argv[])
 		//if (hThread == NULL) { closesocket(client_sock); delete info; }
 		//else { CloseHandle(hThread); }
 	}
-	SetEvent(gamestart);
+
+	//SetEvent(gamestart);
 	system("cls");
 	while (1)
 	{
@@ -511,7 +507,7 @@ int main(int argc, char* argv[])
 	}
 
 	isRunning = false; // 서버 종료 플래그 설정
-	WaitForSingleObject(hEnemyThread, INFINITE); // 적 좌표 스레드 대기
+	//WaitForSingleObject(hEnemyThread, INFINITE); // 적 좌표 스레드 대기
 
 	// 소켓 닫기
 	closesocket(listen_sock);
