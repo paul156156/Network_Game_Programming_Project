@@ -195,9 +195,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
             // 서버 좌표 수신 및 적 생성
             cout << "sendmoveReady" << endl;
-			
-          
-          
+
+
+
             PlayerMove(*gameManager->GetPlayer(), sock);
             cout << "sendmove" << endl;
             recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
@@ -207,19 +207,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             RecvPlayerBullet(sock, *gameManager);
             cout << "RecvPlayerBullet" << endl;
             IsPlayerDead(gameManager->GetPlayerDead());
-SendEnemy
             cout << "IsPlayerDead" << endl;
             RecvEnemy(*gameManager, sock);
             cout << "RecvEnemy" << endl;
         }
 
-        }   
-main
-
         InvalidateRect(hWnd, NULL, FALSE); // 화면 갱신 요청
-
         break;
-
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
@@ -459,8 +453,7 @@ void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager)
         return;
 
     for (auto bullet : BD)
-< SendEnemy
-        gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
+        gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, bulletcnt, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
 }
 
 void RecvEnemy(GameManager& gameManager, SOCKET& sock)
@@ -481,11 +474,8 @@ void RecvEnemy(GameManager& gameManager, SOCKET& sock)
         return;
     }
 
-        gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, bulletcnt, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
- main
-
     // 로그 추가: 데이터 크기 확인
-    cout << "Received data length: " << len << " bytes" << endl;
+    //cout << "Received data length: " << len << " bytes" << endl;
 
     // 데이터 크기 검증
     if (len != sizeof(xy))
@@ -541,12 +531,9 @@ void InitSocket()
     }
 
     int opt_val = TRUE;
- SendEnemy
+
     setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char*)& opt_val, sizeof(opt_val));
-
     setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char*)&opt_val, sizeof(opt_val));
-
- main
 
     // connect()
     struct sockaddr_in serveraddr;

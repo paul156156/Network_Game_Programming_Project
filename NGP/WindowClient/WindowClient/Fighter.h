@@ -26,7 +26,7 @@ public:
     int GetHeight() const { return image ? image->GetHeight() : 0; }
 
     void FireBullet(std::vector<Bullet*>& bullets, int score, int& specialAttackCount, int winWidth);
-    void FireBullet(int x, int y,int cnt, std::vector<Bullet*>& Player1bullets, int score, int& specialAttackCount, int winWidth);
+    void FireBullet(int x, int y, int cnt, std::vector<Bullet*>& Player2bullets, int score, int& specialAttackCount, int winWidth);
 
 private:
     int x, y;

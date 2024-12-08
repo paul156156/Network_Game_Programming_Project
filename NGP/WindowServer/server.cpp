@@ -405,19 +405,18 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			err_display("send()");
 			break;
 		}
- SendEnemy
+
 		
 
 		//cout << "movesend" << endl;
 
 
- main
+
 		RecvPlayerBullet(&PS[clientId]);
 		//cout << "bulrecv" << endl;
 		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
 		//cout << "bulsend" << endl;
 		IsPlayerDead(&PS[clientId]);
-SendEnemy
 
 		cout << "playerinfo send 완료" << endl;
 
@@ -425,7 +424,6 @@ SendEnemy
 		ReleaseSemaphore(semaphore, 1, NULL);
 
 		//cout << "dead" << endl;
- main
 		//cout << "본인 클라이언트:" << clientId << "\t" << "보내는 클라이언트:" << (clientId + 1) % 2 << endl;
 	}
 
@@ -457,10 +455,7 @@ int main(int argc, char* argv[])
 	int opt_val = TRUE;
 	setsockopt(listen_sock, IPPROTO_TCP, TCP_NODELAY, (const char*)&opt_val, sizeof(opt_val));
 
- SendEnemy
 
-=======
- main
 	// bind()
 	struct sockaddr_in serveraddr;
 	memset(&serveraddr, 0, sizeof(serveraddr));
@@ -556,14 +551,12 @@ int main(int argc, char* argv[])
 		LeaveCriticalSection(&cs);
 		Sleep(200);*/	
 	}
- SendEnemy
+
 
 	isRunning = false; // 서버 종료 플래그 설정
 	WaitForSingleObject(hEnemyThread, INFINITE); // 스레드 종료 대기
 	CloseHandle(hEnemyThread);
 
-	
- main
 
 	// 소켓 닫기
 	closesocket(listen_sock);

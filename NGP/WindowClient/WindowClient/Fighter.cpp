@@ -53,7 +53,6 @@ void Fighter::FireBullet(std::vector<Bullet*>& Player1bullets, int score, int& s
             Player1bullets.push_back(new Bullet(i, bulletY - 60, -1, L"resource\\image\\special_bullet.png"));
         }
         specialAttackCount--;
-        return;
     }
 
     if (score >= 1000)
