@@ -54,12 +54,13 @@ bool musicPlaying = true;
 bool paused = false;
 bool gameOver = false;
 
-
 void PlayerMove(Fighter& player, SOCKET& sock);
 void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock);
 void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock);
 void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager);
 void IsPlayerDead(bool _dead);
+void RecvEnemy(GameManager& gameManager, SOCKET& sock);
+void SendGameStart(SOCKET sock);
 void InitSocket();
 DWORD WINAPI PlayerThread(LPVOID arg);
 
@@ -78,17 +79,17 @@ void PlayBGM(LPCWSTR bgmFilePath)
 
 void CreateDebugConsole()
 {
-    AllocConsole(); // ÄÜ¼ÖÀ» ÇÒ´ç
+    AllocConsole(); // ì½˜ì†”ì„ í• ë‹¹
     FILE* fp;
-    freopen_s(&fp, "CONOUT$", "w", stdout); // Ç¥ÁØ Ãâ·Â(stdout)À» ÄÜ¼Ö¿¡ ¿¬°á
-    freopen_s(&fp, "CONOUT$", "w", stderr); // Ç¥ÁØ ¿¡·¯(stderr)¸¦ ÄÜ¼Ö¿¡ ¿¬°á
-    std::cout.clear(); // std::cout ¹öÆÛ¸¦ Áö¿öÁÜ
-    std::cerr.clear(); // std::cerr ¹öÆÛ¸¦ Áö¿öÁÜ
+    freopen_s(&fp, "CONOUT$", "w", stdout); // í‘œì¤€ ì¶œë ¥(stdout)ì„ ì½˜ì†”ì— ì—°ê²°
+    freopen_s(&fp, "CONOUT$", "w", stderr); // í‘œì¤€ ì—ëŸ¬(stderr)ë¥¼ ì½˜ì†”ì— ì—°ê²°
+    std::cout.clear(); // std::cout ë²„í¼ë¥¼ ì§€ì›Œì¤Œ
+    std::cerr.clear(); // std::cerr ë²„í¼ë¥¼ ì§€ì›Œì¤Œ
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
-    // µğ¹ö±× ÄÜ¼Ö »ı¼º
+    // ë””ë²„ê·¸ ì½˜ì†” ìƒì„±
     CreateDebugConsole();
 
     HANDLE hThread;
@@ -119,11 +120,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
-    // GameManager °´Ã¼ »ı¼º ¹× ÃÊ±âÈ­
+    // GameManager ê°ì²´ ìƒì„± ë° ì´ˆê¸°í™”
     //gameManager = new GameManager(winWidth, winHeight);
     //gameManager->Initialize();
 
-    // ¹è°æ À½¾Ç Àç»ı
+    // ë°°ê²½ ìŒì•… ì¬ìƒ
     PlayBGM(L"resource\\sound\\terran.mp3");
 
     SetTimer(hWnd, 1, 50, NULL);
@@ -146,7 +147,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 
     delete gameManager;
 
-    // ¹è°æ À½¾Ç ÁßÁö ¹× ´İ±â
+    // ë°°ê²½ ìŒì•… ì¤‘ì§€ ë° ë‹«ê¸°
     mciSendString(L"stop bgm", NULL, 0, NULL);
     mciSendString(L"close bgm", NULL, 0, NULL);
 
@@ -156,7 +157,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
     static Image* pBackgroundImage = nullptr;
-    static LPCWSTR imagePath = L"resource\\image\\bg.png"; // ÀÌ¹ÌÁö ÆÄÀÏ °æ·Î
+    static LPCWSTR imagePath = L"resource\\image\\bg.png"; // ì´ë¯¸ì§€ íŒŒì¼ ê²½ë¡œ
 
     switch (iMessage)
     {
@@ -168,7 +169,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         gameManager->CreatePlayer(hWnd);
 
         pBackgroundImage = LoadPNG(imagePath);
-        lifeImage = LoadPNG(L"resource\\image\\life.png"); // »ı¸í ¼ö ÀÌ¹ÌÁö ·Îµå
+        lifeImage = LoadPNG(L"resource\\image\\life.png"); // ìƒëª… ìˆ˜ ì´ë¯¸ì§€ ë¡œë“œ
 
         CreateGameButtons(hWnd, winWidth, winHeight, g_hInst);
         ShowInitialUIState(hWnd);
@@ -183,23 +184,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
             gameManager->Update(hWnd, wParam);
 
-            // ÇÃ·¹ÀÌ¾îÀÇ »ı¸íÀÌ 0ÀÎÁö È®ÀÎ
+            // í”Œë ˆì´ì–´ì˜ ìƒëª…ì´ 0ì¸ì§€ í™•ì¸
             if (gameManager->GetPlayer()->GetLives() <= 0)
             {
                 gameManager->SetPlayerDead(true);
                 gameStarted = false;
                 paused = true;
-                ShowGameOverMenu(hWnd); // ¸Ş´º Ç¥½Ã
+                ShowGameOverMenu(hWnd); // ë©”ë‰´ í‘œì‹œ
             }
 
+            // ì„œë²„ ì¢Œí‘œ ìˆ˜ì‹  ë° ì  ìƒì„±
+            cout << "sendmoveReady" << endl;
+			
+          
+          
             PlayerMove(*gameManager->GetPlayer(), sock);
+            cout << "sendmove" << endl;
             recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
+            cout << "recv_PlayerMove" << endl;
             SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
+            cout << "SendPlayerBullet" << endl;
             RecvPlayerBullet(sock, *gameManager);
+            cout << "RecvPlayerBullet" << endl;
             IsPlayerDead(gameManager->GetPlayerDead());
-        }   
+SendEnemy
+            cout << "IsPlayerDead" << endl;
+            RecvEnemy(*gameManager, sock);
+            cout << "RecvEnemy" << endl;
+        }
 
-        InvalidateRect(hWnd, NULL, FALSE); // È­¸é °»½Å ¿äÃ»
+        }   
+main
+
+        InvalidateRect(hWnd, NULL, FALSE); // í™”ë©´ ê°±ì‹  ìš”ì²­
 
         break;
 
@@ -207,7 +224,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         switch (LOWORD(wParam))
         {
         case 1: HandleResume(hWnd, paused); break;
-        case 2: HandleStart(hWnd, gameStarted, showMenu); break;
+        case 2: HandleStart(hWnd, gameStarted, showMenu); 
+            SendGameStart(sock);
+            break;
         case 3: HandleRestart(hWnd, gameManager->GetEnemyBullets(), gameManager->GetPlayer1Bullets(), gameManager->GetPlayer2Bullets(), gameManager->GetEnemies(), gameManager->GetPlayer(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), gameStarted, showMenu, paused, gameOver, winWidth, winHeight);
             BACKGROUND_Y = 0;
             gameManager->SetPlayerDead(false);
@@ -240,10 +259,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
         gameManager->Draw(hMemDC);
 
-        // Á¡¼ö¿Í Æ¯¼ö °ø°İ °¡´É È½¼ö Ç¥½Ã
+        // ì ìˆ˜ì™€ íŠ¹ìˆ˜ ê³µê²© ê°€ëŠ¥ íšŸìˆ˜ í‘œì‹œ
         DisplayScoreAndSpecialAttack(hMemDC, gameManager->GetScore(), gameManager->GetSpecialAttackCount());
 
-        // »ı¸í ¼ö Ç¥½Ã
+        // ìƒëª… ìˆ˜ í‘œì‹œ
         DisplayPlayerLives(hMemDC, gameManager->GetPlayer(), lifeImage);
 
         BitBlt(hDC, 0, 0, winWidth, winHeight, hMemDC, 0, 0, SRCCOPY);
@@ -260,7 +279,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         switch (wParam)
         {
         case VK_SPACE:
-            if (gameStarted && !paused) // °ÔÀÓÀÌ ½ÃÀÛµÇ°í ÀÏ½Ã Á¤ÁöµÇÁö ¾ÊÀº °æ¿ì¿¡¸¸ ÃÑ¾Ë ¹ß»ç
+            if (gameStarted && !paused) // ê²Œì„ì´ ì‹œì‘ë˜ê³  ì¼ì‹œ ì •ì§€ë˜ì§€ ì•Šì€ ê²½ìš°ì—ë§Œ ì´ì•Œ ë°œì‚¬
             {
                 gameManager->GetPlayer()->FireBullet(gameManager->GetPlayer1Bullets(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), winWidth);
             }
@@ -268,22 +287,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         case VK_ESCAPE:
             if (gameStarted)
             {
-                paused = !paused; // ÀÏ½Ã Á¤Áö
+                paused = !paused; // ì¼ì‹œ ì •ì§€
                 if (paused)
                 {
                     KillTimer(hWnd, 1);
                     KillTimer(hWnd, 2);
 
-                    // ¸Ş´º º¸ÀÌ±â
+                    // ë©”ë‰´ ë³´ì´ê¸°
                     ShowMenu(hWnd);
                 }
                 else
                 {
-                    // °ÔÀÓ ´Ù½Ã ½ÃÀÛ
+                    // ê²Œì„ ë‹¤ì‹œ ì‹œì‘
                     SetTimer(hWnd, 1, 50, NULL);
                     SetTimer(hWnd, 2, 1000, NULL);
 
-                    // ¸Ş´º ¼û±â±â
+                    // ë©”ë‰´ ìˆ¨ê¸°ê¸°
                     HideMenu(hWnd);
                 }
             }
@@ -322,7 +341,7 @@ void PlayerMove(Fighter& player, SOCKET& sock)
     len = sizeof(xy);
 
     if (sock == INVALID_SOCKET) {
-        MessageBoxA(NULL, "À¯È¿ÇÏÁö ¾ÊÀº ¼ÒÄÏ", "¿À·ù", MB_OK | MB_ICONERROR);
+        MessageBoxA(NULL, "ìœ íš¨í•˜ì§€ ì•Šì€ ì†Œì¼“", "ì˜¤ë¥˜", MB_OK | MB_ICONERROR);
         return;
     }
     retval = send(sock, (char*)&len, sizeof(int), 0);
@@ -367,7 +386,6 @@ void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock)
     anotherplayerFighter.SetX(xy[0]);
     anotherplayerFighter.SetY(xy[1]);
 }
-
 struct BulletData { int x, y; bool destroy, send; };
 void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock)
 {
@@ -385,7 +403,7 @@ void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock)
     len = sizeof(BulletData) * BD.size();
     bulletcnt = (int)BD.size();
     if (sock == INVALID_SOCKET) {
-        MessageBoxA(NULL, "À¯È¿ÇÏÁö ¾ÊÀº ¼ÒÄÏ", "¿À·ù", MB_OK | MB_ICONERROR);
+        MessageBoxA(NULL, "ìœ íš¨í•˜ì§€ ì•Šì€ ì†Œì¼“", "ì˜¤ë¥˜", MB_OK | MB_ICONERROR);
         return;
     }
     retval = send(sock, (char*)&bulletcnt, sizeof(int), 0);
@@ -441,30 +459,94 @@ void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager)
         return;
 
     for (auto bullet : BD)
+< SendEnemy
+        gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
+}
+
+void RecvEnemy(GameManager& gameManager, SOCKET& sock)
+{
+    int retval, len = 0;
+    int xy[2] = { 0, 0 };
+
+    // ë°ì´í„° í¬ê¸° ìˆ˜ì‹ 
+    retval = recv(sock, (char*)&len, sizeof(len), MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv() - Data length");
+        return;
+    }
+    else if (retval == 0)
+    {
+        cerr << "Connection closed by server." << endl;
+        return;
+    }
+
         gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, bulletcnt, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
+ main
 
+    // ë¡œê·¸ ì¶”ê°€: ë°ì´í„° í¬ê¸° í™•ì¸
+    cout << "Received data length: " << len << " bytes" << endl;
 
+    // ë°ì´í„° í¬ê¸° ê²€ì¦
+    if (len != sizeof(xy))
+    {
+        cerr << "Unexpected data length: " << len << " (Expected: " << sizeof(xy) << ")" << endl;
+        return;
+    }
+
+    // ì¢Œí‘œ ë°ì´í„° ìˆ˜ì‹ 
+    retval = recv(sock, (char*)xy, len, MSG_WAITALL);
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv() - Data");
+        return;
+    }
+    else if (retval == 0)
+    {
+        cerr << "Connection closed by server." << endl;
+        return;
+    }
+
+    // ì  ìƒì„±
+    if (xy[0] == 0 && xy[1] == 0)
+        return;
+    gameManager.CreateEnemy(xy[0], xy[1]);
+    cout << "Enemy created at: x=" << xy[0] << ", y=" << xy[1] << endl;
+}
+
+void SendGameStart(SOCKET sock) {
+    bool isGameStarted = true; // Game Start í”Œë˜ê·¸
+    int retval = send(sock, (char*)&isGameStarted, sizeof(isGameStarted), 0);
+    if (retval == SOCKET_ERROR) {
+        cerr << "Error sending GameStart: " << WSAGetLastError() << endl;
+        return;
+    }
+    cout << "Game Start message sent to server." << endl;
 }
 
 void InitSocket()
 {
     int retval;
-    // À©¼Ó ÃÊ±âÈ­
+    // ìœˆì† ì´ˆê¸°í™”
     WSADATA wsa;
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
         exit(0);
 
-    // ¼ÒÄÏ »ı¼º
+    // ì†Œì¼“ ìƒì„±
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == INVALID_SOCKET) {
-        MessageBoxA(NULL, "¼ÒÄÏ »ı¼º ½ÇÆĞ", "¿À·ù", MB_OK | MB_ICONERROR);
+        MessageBoxA(NULL, "ì†Œì¼“ ìƒì„± ì‹¤íŒ¨", "ì˜¤ë¥˜", MB_OK | MB_ICONERROR);
         WSACleanup();
         exit(1);
     }
 
     int opt_val = TRUE;
+ SendEnemy
+    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char*)& opt_val, sizeof(opt_val));
+
     setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char*)&opt_val, sizeof(opt_val));
 
+ main
 
     // connect()
     struct sockaddr_in serveraddr;
@@ -484,7 +566,7 @@ void IsPlayerDead(bool _dead)
     bool dead = _dead;
 
     if (sock == INVALID_SOCKET) {
-        MessageBoxA(NULL, "À¯È¿ÇÏÁö ¾ÊÀº ¼ÒÄÏ", "¿À·ù", MB_OK | MB_ICONERROR);
+        MessageBoxA(NULL, "ìœ íš¨í•˜ì§€ ì•Šì€ ì†Œì¼“", "ì˜¤ë¥˜", MB_OK | MB_ICONERROR);
         return;
     }
     retval = send(sock, (char*)&dead, sizeof(dead), 0);

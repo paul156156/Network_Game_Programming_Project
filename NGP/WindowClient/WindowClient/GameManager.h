@@ -24,7 +24,7 @@ public:
     std::vector<Bullet*>& GetEnemyBullets() { return Enemybullets; }
     std::vector<Bullet*>& GetPlayer1Bullets() { return Player1bullets; }
     std::vector<Bullet*>& GetPlayer2Bullets() { return Player2bullets; }
-    std::vector<Enemy*>& GetEnemies() { return enemies; }
+    std::vector<Enemy*>& GetEnemies() { return Enemies; }
     int& GetScore() { return score; }
     int& GetSpecialAttackCount() { return specialAttackCount; }
     bool GetPlayerDead() { return playerdead; }
@@ -33,14 +33,14 @@ public:
     void SetEnemyBullets(std::vector<Bullet*>& newBullets) { Enemybullets = newBullets; }
     void SetPlayer1Bullets(std::vector<Bullet*>& newBullets) { Player1bullets = newBullets; }
     void SetPlayer2Bullets(std::vector<Bullet*>& newBullets) { Player2bullets = newBullets; }
-    void SetEnemies(std::vector<Enemy*>& newEnemies) { enemies = newEnemies; }
+    void SetEnemies(std::vector<Enemy*>& newEnemies) { Enemies = newEnemies; }
     void SetPlayerDead(bool _dead) { playerdead = _dead; }
 
     void Initialize();
     void CreatePlayer(HWND hWnd);
     void Update(HWND hWnd, WPARAM wParam);
     void HandleCollisions(HWND hWnd);
-    void CreateEnemy();
+    void CreateEnemy(int x, int y);
 
 
     void Draw(HDC hMemDC);
@@ -61,7 +61,7 @@ private:
     std::vector<Bullet*> Enemybullets;
     std::vector<Bullet*> Player1bullets;
     std::vector<Bullet*> Player2bullets;
-    std::vector<Enemy*> enemies;
+    std::vector<Enemy*> Enemies;
     SOCKET sock;
 
 
