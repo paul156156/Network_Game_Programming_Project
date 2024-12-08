@@ -13,6 +13,8 @@
 #include <string.h> // strncpy(), ...
 #include <vector>
 #include <queue>
+#include <chrono>
+#include <time.h>
 
 #include <random>
 
@@ -73,7 +75,10 @@ using namespace std;
 CRITICAL_SECTION cs;
 int countid = 0;
 HANDLE gamestart = NULL;
+HANDLE PlayerInfoSend = NULL;
+HANDLE semaphore;
 bool clientReady[2] = { false, false };
+clock_t Tstart, Tend;
 
 struct BulletData { int x, y; bool destroy, send; };
 struct PlayerSock {
@@ -253,21 +258,41 @@ struct clientinfo
 
 DWORD WINAPI EnemySenderThread(LPVOID arg)
 {
-	PlayerSock* PS = (PlayerSock*)arg; // 클라이언트 소켓 배열
+	//PlayerSock* PS = (PlayerSock*)arg; // 클라이언트 소켓 배열
 	const int clientCount = 2; // 최대 클라이언트 수
+	auto lastSentTime = chrono::steady_clock::now();
 
 	while (isRunning)
 	{
-		Sleep(1000); // 1초마다 적 좌표 생성 및 전송
+		
+		for (int i = 0; i < clientCount; i++)
+		{
+			WaitForSingleObject(semaphore, INFINITE); // 세마포어 대기
+		}
+		//Sleep(1); // 1초마다 적 좌표 생성 및 전송
 
 		if (!isGameRunning) continue; // 게임이 진행 중이 아니면 건너뜀
 
+		auto currentTime = std::chrono::steady_clock::now();
+		auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastSentTime);
 		// 적 좌표 생성
-		int xy[2] = { distrib(gen), distrib(gen) }; // 무작위 좌표 생성
-		int len = sizeof(xy); // 데이터 길이
+		int xy[2];
 
-		cout << "Sending data length: " << len << " bytes" << endl;
-		cout << "Generated enemy position: x=" << xy[0] << ", y=" << xy[1] << endl;
+		if (elapsedTime.count() >= 1000) // 1초 이상 경과 시
+		{
+			xy[0] = distrib(gen); // 무작위 x 좌표 생성
+			xy[1] = distrib(gen); // 무작위 y 좌표 생성
+			lastSentTime = currentTime; // 마지막 전송 시간 갱신
+		}
+		else
+		{
+			xy[0] = 0; // 무작위 x 좌표 생성
+			xy[1] = 0; // 무작위 y 좌표 생성
+		}
+		int len = sizeof(xy);
+
+		//cout << "Sending data length: " << len << " bytes" << endl;
+		//cout << "Generated enemy position: x=" << xy[0] << ", y=" << xy[1] << endl;
 
 		// 클라이언트들에게 좌표 전송
 		for (int i = 0; i < clientCount; i++)
@@ -292,10 +317,12 @@ DWORD WINAPI EnemySenderThread(LPVOID arg)
 					continue; // 오류 발생 시 해당 클라이언트 건너뜀
 				}
 
-				cout << "Sent enemy position to client " << i
-					<< ": x=" << xy[0] << ", y=" << xy[1] << endl;
+				//cout << "Sent enemy position to client " << i
+				//	<< ": x=" << xy[0] << ", y=" << xy[1] << endl;
 			}
+			
 		}
+		cout << "enemy send 완료" << endl;
 	}
 
 	return 0;
@@ -333,8 +360,8 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	// Game Start 메시지 수신 대기
 	RecvGameStart(&PS[clientId], clientId);
 
-	WaitForSingleObject(gamestart, INFINITE); // 게임 시작 대기
-
+	//WaitForSingleObject(gamestart, INFINITE); // 게임 시작 대기
+	
 
 	while (1)
 	{
@@ -381,6 +408,11 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		RecvPlayerBullet(&PS[clientId]);
 		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
 		IsPlayerDead(&PS[clientId]);
+
+		cout << "playerinfo send 완료" << endl;
+
+		
+		ReleaseSemaphore(semaphore, 1, NULL);
 		//cout << "본인 클라이언트:" << clientId << "\t" << "보내는 클라이언트:" << (clientId + 1) % 2 << endl;
 	}
 
@@ -402,11 +434,16 @@ int main(int argc, char* argv[])
 		return 1;
 
 	gamestart = CreateEvent(NULL, TRUE, FALSE, NULL);
+	semaphore = CreateSemaphore(NULL, 0, 2, NULL);
 	InitializeCriticalSection(&cs);
 
 	// 소켓 생성
 	SOCKET listen_sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (listen_sock == INVALID_SOCKET) err_quit("socket()");
+
+	int opt_val = TRUE;
+	setsockopt(listen_sock, IPPROTO_TCP, TCP_NODELAY, (const char*)&opt_val, sizeof(opt_val));
+
 
 	// bind()
 	struct sockaddr_in serveraddr;
@@ -487,7 +524,8 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	//SetEvent(gamestart);
+	SetEvent(gamestart);
+	
 	system("cls");
 	while (1)
 	{
