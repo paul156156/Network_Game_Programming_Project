@@ -13,6 +13,8 @@
 #include <string.h> // strncpy(), ...
 #include <vector>
 #include <queue>
+#include <chrono>
+#include <time.h>
 
 #include <random>
 
@@ -76,6 +78,7 @@ HANDLE gamestart = NULL;
 HANDLE PlayerInfoSend = NULL;
 HANDLE semaphore;
 bool clientReady[2] = { false, false };
+clock_t Tstart, Tend;
 
 struct BulletData { int x, y; bool destroy, send; };
 struct PlayerSock {
@@ -257,9 +260,11 @@ DWORD WINAPI EnemySenderThread(LPVOID arg)
 {
 	//PlayerSock* PS = (PlayerSock*)arg; // 클라이언트 소켓 배열
 	const int clientCount = 2; // 최대 클라이언트 수
+	auto lastSentTime = chrono::steady_clock::now();
 
 	while (isRunning)
 	{
+		
 		for (int i = 0; i < clientCount; i++)
 		{
 			WaitForSingleObject(semaphore, INFINITE); // 세마포어 대기
@@ -268,9 +273,23 @@ DWORD WINAPI EnemySenderThread(LPVOID arg)
 
 		if (!isGameRunning) continue; // 게임이 진행 중이 아니면 건너뜀
 
+		auto currentTime = std::chrono::steady_clock::now();
+		auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastSentTime);
 		// 적 좌표 생성
-		int xy[2] = { distrib(gen), distrib(gen) }; // 무작위 좌표 생성
-		int len = sizeof(xy); // 데이터 길이
+		int xy[2];
+
+		if (elapsedTime.count() >= 1000) // 1초 이상 경과 시
+		{
+			xy[0] = distrib(gen); // 무작위 x 좌표 생성
+			xy[1] = distrib(gen); // 무작위 y 좌표 생성
+			lastSentTime = currentTime; // 마지막 전송 시간 갱신
+		}
+		else
+		{
+			xy[0] = 0; // 무작위 x 좌표 생성
+			xy[1] = 0; // 무작위 y 좌표 생성
+		}
+		int len = sizeof(xy);
 
 		//cout << "Sending data length: " << len << " bytes" << endl;
 		//cout << "Generated enemy position: x=" << xy[0] << ", y=" << xy[1] << endl;

@@ -29,7 +29,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 GameManager* gameManager = nullptr;
 #define SERVERPORT 9000
 #define BUFSIZE    512
-char* SERVERIP = (char*)"127.0.0.1";
+char* SERVERIP = (char*)"192.168.219.103";
 char buf[BUFSIZE + 1];
 
 SOCKET sock;
@@ -494,6 +494,8 @@ void RecvEnemy(GameManager& gameManager, SOCKET& sock)
     }
 
     // Àû »ý¼º
+    if (xy[0] == 0 && xy[1] == 0)
+        return;
     gameManager.CreateEnemy(xy[0], xy[1]);
     cout << "Enemy created at: x=" << xy[0] << ", y=" << xy[1] << endl;
 }
