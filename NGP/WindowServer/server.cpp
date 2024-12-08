@@ -1,11 +1,11 @@
-/*** ¿©±â¼­ºÎÅÍ ÀÌ Ã¥ÀÇ ¸ğµç ¿¹Á¦¿¡¼­ °øÅëÀ¸·Î Æ÷ÇÔÇÏ¿© »ç¿ëÇÏ´Â ÄÚµåÀÌ´Ù. ***/
+/*** ì—¬ê¸°ì„œë¶€í„° ì´ ì±…ì˜ ëª¨ë“  ì˜ˆì œì—ì„œ ê³µí†µìœ¼ë¡œ í¬í•¨í•˜ì—¬ ì‚¬ìš©í•˜ëŠ” ì½”ë“œì´ë‹¤. ***/
 
-#define _CRT_SECURE_NO_WARNINGS // ±¸Çü C ÇÔ¼ö »ç¿ë ½Ã °æ°í ²ô±â
-#define _WINSOCK_DEPRECATED_NO_WARNINGS // ±¸Çü ¼ÒÄÏ API »ç¿ë ½Ã °æ°í ²ô±â
+#define _CRT_SECURE_NO_WARNINGS // êµ¬í˜• C í•¨ìˆ˜ ì‚¬ìš© ì‹œ ê²½ê³  ë„ê¸°
+#define _WINSOCK_DEPRECATED_NO_WARNINGS // êµ¬í˜• ì†Œì¼“ API ì‚¬ìš© ì‹œ ê²½ê³  ë„ê¸°
 
 #include <iostream>
-#include <winsock2.h> // À©¼Ó2 ¸ŞÀÎ Çì´õ
-#include <ws2tcpip.h> // À©¼Ó2 È®Àå Çì´õ
+#include <winsock2.h> // ìœˆì†2 ë©”ì¸ í—¤ë”
+#include <ws2tcpip.h> // ìœˆì†2 í™•ì¥ í—¤ë”
 
 #include <tchar.h> // _T(), ...
 #include <stdio.h> // printf(), ...
@@ -18,15 +18,15 @@
 
 #include <random>
 
-#pragma comment(lib, "ws2_32") // ws2_32.lib ¸µÅ©
+#pragma comment(lib, "ws2_32") // ws2_32.lib ë§í¬
 
 std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_int_distribution<> distrib(1, 400); 
 bool isRunning = true;
-bool isGameRunning = false; // ¸ğµç Å¬¶óÀÌ¾ğÆ®°¡ ÁØºñµÇ¾ú´ÂÁö ¿©ºÎ
+bool isGameRunning = false; // ëª¨ë“  í´ë¼ì´ì–¸íŠ¸ê°€ ì¤€ë¹„ë˜ì—ˆëŠ”ì§€ ì—¬ë¶€
 
-// ¼ÒÄÏ ÇÔ¼ö ¿À·ù Ãâ·Â ÈÄ Á¾·á
+// ì†Œì¼“ í•¨ìˆ˜ ì˜¤ë¥˜ ì¶œë ¥ í›„ ì¢…ë£Œ
 void err_quit(const char* msg)
 {
 	LPVOID lpMsgBuf;
@@ -40,7 +40,7 @@ void err_quit(const char* msg)
 	exit(1);
 }
 
-// ¼ÒÄÏ ÇÔ¼ö ¿À·ù Ãâ·Â
+// ì†Œì¼“ í•¨ìˆ˜ ì˜¤ë¥˜ ì¶œë ¥
 void err_display(const char* msg)
 {
 	LPVOID lpMsgBuf;
@@ -53,7 +53,7 @@ void err_display(const char* msg)
 	LocalFree(lpMsgBuf);
 }
 
-// ¼ÒÄÏ ÇÔ¼ö ¿À·ù Ãâ·Â
+// ì†Œì¼“ í•¨ìˆ˜ ì˜¤ë¥˜ ì¶œë ¥
 void err_display(int errcode)
 {
 	LPVOID lpMsgBuf;
@@ -62,12 +62,12 @@ void err_display(int errcode)
 		NULL, errcode,
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(char*)&lpMsgBuf, 0, NULL);
-	printf("[¿À·ù] %s\n", (char*)lpMsgBuf);
+	printf("[ì˜¤ë¥˜] %s\n", (char*)lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }
 
-/*** ¿©±â±îÁö°¡ ÀÌ Ã¥ÀÇ ¸ğµç ¿¹Á¦¿¡¼­ °øÅëÀ¸·Î Æ÷ÇÔÇÏ¿© »ç¿ëÇÏ´Â ÄÚµåÀÌ´Ù. ***/
-/*** 2Àå ÀÌÈÄÀÇ ¿¹Á¦µéÀº Common.h¸¦ Æ÷ÇÔÇÏ´Â ¹æ½ÄÀ¸·Î ÀÌ ÄÚµå¸¦ »ç¿ëÇÑ´Ù.  ***/
+/*** ì—¬ê¸°ê¹Œì§€ê°€ ì´ ì±…ì˜ ëª¨ë“  ì˜ˆì œì—ì„œ ê³µí†µìœ¼ë¡œ í¬í•¨í•˜ì—¬ ì‚¬ìš©í•˜ëŠ” ì½”ë“œì´ë‹¤. ***/
+/*** 2ì¥ ì´í›„ì˜ ì˜ˆì œë“¤ì€ Common.hë¥¼ í¬í•¨í•˜ëŠ” ë°©ì‹ìœ¼ë¡œ ì´ ì½”ë“œë¥¼ ì‚¬ìš©í•œë‹¤.  ***/
 
 using namespace std;
 #define SERVERPORT 9000
@@ -115,7 +115,7 @@ char* recv_filename(SOCKET client_sock, char* buf)
 	else if (retval == 0)
 		return NULL;
 
-	buf[len] = '\0'; // ÆÄÀÏ¸íÀ» ¹®ÀÚ¿­·Î º¯È¯
+	buf[len] = '\0'; // íŒŒì¼ëª…ì„ ë¬¸ìì—´ë¡œ ë³€í™˜
 	return buf;
 }
 void recv_filesize(SOCKET client_sock, size_t& filesize)
@@ -147,7 +147,7 @@ void SendPlayerBullet(PlayerSock* send_PS, PlayerSock* recv_PS)
 	len = sizeof(BulletData) * BD.size();
 	bulletcnt = (int)BD.size();
 	if (recv_PS->client_sock == INVALID_SOCKET) {
-		MessageBoxA(NULL, "À¯È¿ÇÏÁö ¾ÊÀº ¼ÒÄÏ", "¿À·ù", MB_OK | MB_ICONERROR);
+		MessageBoxA(NULL, "ìœ íš¨í•˜ì§€ ì•Šì€ ì†Œì¼“", "ì˜¤ë¥˜", MB_OK | MB_ICONERROR);
 		return;
 	}
 	retval = send(recv_PS->client_sock, (char*)&bulletcnt, sizeof(int), 0);
@@ -215,7 +215,7 @@ void IsPlayerDead(PlayerSock* PS)
 	bool dead = false;
 
 	if (PS->client_sock == INVALID_SOCKET) {
-		MessageBoxA(NULL, "À¯È¿ÇÏÁö ¾ÊÀº ¼ÒÄÏ", "¿À·ù", MB_OK | MB_ICONERROR);
+		MessageBoxA(NULL, "ìœ íš¨í•˜ì§€ ì•Šì€ ì†Œì¼“", "ì˜¤ë¥˜", MB_OK | MB_ICONERROR);
 		return;
 	}
 	retval = recv(PS->client_sock, (char*)&dead, sizeof(dead), 0);
@@ -227,7 +227,7 @@ void IsPlayerDead(PlayerSock* PS)
 	}
 
 	if (dead)
-		cout << "ÇÃ·¹ÀÌ¾î »ç¸Á" << endl;
+		cout << "í”Œë ˆì´ì–´ ì‚¬ë§" << endl;
 }
 
 void RecvGameStart(PlayerSock* PS, int clientId) {
@@ -239,14 +239,14 @@ void RecvGameStart(PlayerSock* PS, int clientId) {
 	}
 
 	PS->isGameStarted = isGameStarted;
-	clientReady[clientId] = isGameStarted; // Å¬¶óÀÌ¾ğÆ® ÁØºñ »óÅÂ ÀúÀå
+	clientReady[clientId] = isGameStarted; // í´ë¼ì´ì–¸íŠ¸ ì¤€ë¹„ ìƒíƒœ ì €ì¥
 	cout << "Client " << clientId << " is ready: " << isGameStarted << endl;
 
-	// ¸ğµç Å¬¶óÀÌ¾ğÆ®°¡ ÁØºñµÇ¾ú´ÂÁö È®ÀÎ
+	// ëª¨ë“  í´ë¼ì´ì–¸íŠ¸ê°€ ì¤€ë¹„ë˜ì—ˆëŠ”ì§€ í™•ì¸
 	if (clientReady[0] && clientReady[1]) {
 		cout << "All clients are ready. Starting the game!" << endl;
-		SetEvent(gamestart); // ÀÌº¥Æ® ½ÅÈ£ ¼³Á¤
-		isGameRunning = true; // °ÔÀÓ ½ÃÀÛ
+		SetEvent(gamestart); // ì´ë²¤íŠ¸ ì‹ í˜¸ ì„¤ì •
+		isGameRunning = true; // ê²Œì„ ì‹œì‘
 	}
 }
 
@@ -258,8 +258,8 @@ struct clientinfo
 
 DWORD WINAPI EnemySenderThread(LPVOID arg)
 {
-	//PlayerSock* PS = (PlayerSock*)arg; // Å¬¶óÀÌ¾ğÆ® ¼ÒÄÏ ¹è¿­
-	const int clientCount = 2; // ÃÖ´ë Å¬¶óÀÌ¾ğÆ® ¼ö
+	//PlayerSock* PS = (PlayerSock*)arg; // í´ë¼ì´ì–¸íŠ¸ ì†Œì¼“ ë°°ì—´
+	const int clientCount = 2; // ìµœëŒ€ í´ë¼ì´ì–¸íŠ¸ ìˆ˜
 	auto lastSentTime = chrono::steady_clock::now();
 
 	while (isRunning)
@@ -267,54 +267,54 @@ DWORD WINAPI EnemySenderThread(LPVOID arg)
 		
 		for (int i = 0; i < clientCount; i++)
 		{
-			WaitForSingleObject(semaphore, INFINITE); // ¼¼¸¶Æ÷¾î ´ë±â
+			WaitForSingleObject(semaphore, INFINITE); // ì„¸ë§ˆí¬ì–´ ëŒ€ê¸°
 		}
-		//Sleep(1); // 1ÃÊ¸¶´Ù Àû ÁÂÇ¥ »ı¼º ¹× Àü¼Û
+		//Sleep(1); // 1ì´ˆë§ˆë‹¤ ì  ì¢Œí‘œ ìƒì„± ë° ì „ì†¡
 
-		if (!isGameRunning) continue; // °ÔÀÓÀÌ ÁøÇà ÁßÀÌ ¾Æ´Ï¸é °Ç³Ê¶Ü
+		if (!isGameRunning) continue; // ê²Œì„ì´ ì§„í–‰ ì¤‘ì´ ì•„ë‹ˆë©´ ê±´ë„ˆëœ€
 
 		auto currentTime = std::chrono::steady_clock::now();
 		auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastSentTime);
-		// Àû ÁÂÇ¥ »ı¼º
+		// ì  ì¢Œí‘œ ìƒì„±
 		int xy[2];
 
-		if (elapsedTime.count() >= 1000) // 1ÃÊ ÀÌ»ó °æ°ú ½Ã
+		if (elapsedTime.count() >= 1000) // 1ì´ˆ ì´ìƒ ê²½ê³¼ ì‹œ
 		{
-			xy[0] = distrib(gen); // ¹«ÀÛÀ§ x ÁÂÇ¥ »ı¼º
-			xy[1] = distrib(gen); // ¹«ÀÛÀ§ y ÁÂÇ¥ »ı¼º
-			lastSentTime = currentTime; // ¸¶Áö¸· Àü¼Û ½Ã°£ °»½Å
+			xy[0] = distrib(gen); // ë¬´ì‘ìœ„ x ì¢Œí‘œ ìƒì„±
+			xy[1] = distrib(gen); // ë¬´ì‘ìœ„ y ì¢Œí‘œ ìƒì„±
+			lastSentTime = currentTime; // ë§ˆì§€ë§‰ ì „ì†¡ ì‹œê°„ ê°±ì‹ 
 		}
 		else
 		{
-			xy[0] = 0; // ¹«ÀÛÀ§ x ÁÂÇ¥ »ı¼º
-			xy[1] = 0; // ¹«ÀÛÀ§ y ÁÂÇ¥ »ı¼º
+			xy[0] = 0; // ë¬´ì‘ìœ„ x ì¢Œí‘œ ìƒì„±
+			xy[1] = 0; // ë¬´ì‘ìœ„ y ì¢Œí‘œ ìƒì„±
 		}
 		int len = sizeof(xy);
 
 		//cout << "Sending data length: " << len << " bytes" << endl;
 		//cout << "Generated enemy position: x=" << xy[0] << ", y=" << xy[1] << endl;
 
-		// Å¬¶óÀÌ¾ğÆ®µé¿¡°Ô ÁÂÇ¥ Àü¼Û
+		// í´ë¼ì´ì–¸íŠ¸ë“¤ì—ê²Œ ì¢Œí‘œ ì „ì†¡
 		for (int i = 0; i < clientCount; i++)
 		{
-			if (PS[i].client_sock != INVALID_SOCKET) // À¯È¿ÇÑ ¼ÒÄÏÀÎÁö È®ÀÎ
+			if (PS[i].client_sock != INVALID_SOCKET) // ìœ íš¨í•œ ì†Œì¼“ì¸ì§€ í™•ì¸
 			{
-				// µ¥ÀÌÅÍ ±æÀÌ Àü¼Û
+				// ë°ì´í„° ê¸¸ì´ ì „ì†¡
 				int retval = send(PS[i].client_sock, (char*)&len, sizeof(len), 0);
 				if (retval == SOCKET_ERROR)
 				{
 					cerr << "Error sending data length to client " << i
 						<< ": " << WSAGetLastError() << endl;
-					continue; // ¿À·ù ¹ß»ı ½Ã ÇØ´ç Å¬¶óÀÌ¾ğÆ® °Ç³Ê¶Ü
+					continue; // ì˜¤ë¥˜ ë°œìƒ ì‹œ í•´ë‹¹ í´ë¼ì´ì–¸íŠ¸ ê±´ë„ˆëœ€
 				}
 
-				// ÁÂÇ¥ µ¥ÀÌÅÍ Àü¼Û
+				// ì¢Œí‘œ ë°ì´í„° ì „ì†¡
 				retval = send(PS[i].client_sock, (char*)xy, len, 0);
 				if (retval == SOCKET_ERROR)
 				{
 					cerr << "Error sending enemy position to client " << i
 						<< ": " << WSAGetLastError() << endl;
-					continue; // ¿À·ù ¹ß»ı ½Ã ÇØ´ç Å¬¶óÀÌ¾ğÆ® °Ç³Ê¶Ü
+					continue; // ì˜¤ë¥˜ ë°œìƒ ì‹œ í•´ë‹¹ í´ë¼ì´ì–¸íŠ¸ ê±´ë„ˆëœ€
 				}
 
 				//cout << "Sent enemy position to client " << i
@@ -322,7 +322,7 @@ DWORD WINAPI EnemySenderThread(LPVOID arg)
 			}
 			
 		}
-		cout << "enemy send ¿Ï·á" << endl;
+		cout << "enemy send ì™„ë£Œ" << endl;
 	}
 
 	return 0;
@@ -346,27 +346,28 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	size_t filesize;
 	int len;
 
-	// Å¬¶óÀÌ¾ğÆ® Á¤º¸ ¾ò±â
+	// í´ë¼ì´ì–¸íŠ¸ ì •ë³´ ì–»ê¸°
 	addrlen = sizeof(clientaddr);
 	getpeername(client_sock, (struct sockaddr*)&clientaddr, &addrlen);
 	inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
 	
 	if (client_sock == INVALID_SOCKET) {
-		MessageBoxA(NULL, "¼ÒÄÏ »ı¼º ½ÇÆĞ", "¿À·ù", MB_OK | MB_ICONERROR);
+		MessageBoxA(NULL, "ì†Œì¼“ ìƒì„± ì‹¤íŒ¨", "ì˜¤ë¥˜", MB_OK | MB_ICONERROR);
 		WSACleanup();
 		return 0;
 	}
 
-	// Game Start ¸Ş½ÃÁö ¼ö½Å ´ë±â
+	// Game Start ë©”ì‹œì§€ ìˆ˜ì‹  ëŒ€ê¸°
 	RecvGameStart(&PS[clientId], clientId);
 
-	//WaitForSingleObject(gamestart, INFINITE); // °ÔÀÓ ½ÃÀÛ ´ë±â
+	//WaitForSingleObject(gamestart, INFINITE); // ê²Œì„ ì‹œì‘ ëŒ€ê¸°
 	
 
 	while (1)
 	{
 		int xy[2];
-
+		//Sleep(1);
+		//cout << "start" << endl;
 		retval = recv(client_sock, (char*)&len, sizeof(int), MSG_WAITALL);
 		if (retval == SOCKET_ERROR)
 		{
@@ -384,7 +385,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		}
 		else if (retval == 0)
 			break;
-
+		//cout << "moverecv" << endl;
 		PS[(clientId + 1) % 2].x = xy[0];
 		PS[(clientId + 1) % 2].y = xy[1];
 		
@@ -404,21 +405,33 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			err_display("send()");
 			break;
 		}
+ SendEnemy
 		
-		RecvPlayerBullet(&PS[clientId]);
-		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
-		IsPlayerDead(&PS[clientId]);
 
-		cout << "playerinfo send ¿Ï·á" << endl;
+		//cout << "movesend" << endl;
+
+
+ main
+		RecvPlayerBullet(&PS[clientId]);
+		//cout << "bulrecv" << endl;
+		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
+		//cout << "bulsend" << endl;
+		IsPlayerDead(&PS[clientId]);
+SendEnemy
+
+		cout << "playerinfo send ì™„ë£Œ" << endl;
 
 		
 		ReleaseSemaphore(semaphore, 1, NULL);
-		//cout << "º»ÀÎ Å¬¶óÀÌ¾ğÆ®:" << clientId << "\t" << "º¸³»´Â Å¬¶óÀÌ¾ğÆ®:" << (clientId + 1) % 2 << endl;
+
+		//cout << "dead" << endl;
+ main
+		//cout << "ë³¸ì¸ í´ë¼ì´ì–¸íŠ¸:" << clientId << "\t" << "ë³´ë‚´ëŠ” í´ë¼ì´ì–¸íŠ¸:" << (clientId + 1) % 2 << endl;
 	}
 
 
 
-	// ¼ÒÄÏ ´İ±â
+	// ì†Œì¼“ ë‹«ê¸°
 	//closesocket(client_sock);
 	//delete Info;
 	return 0;
@@ -428,7 +441,7 @@ int main(int argc, char* argv[])
 {
 	int retval;
 
-	// À©¼Ó ÃÊ±âÈ­
+	// ìœˆì† ì´ˆê¸°í™”
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 		return 1;
@@ -437,14 +450,17 @@ int main(int argc, char* argv[])
 	semaphore = CreateSemaphore(NULL, 0, 2, NULL);
 	InitializeCriticalSection(&cs);
 
-	// ¼ÒÄÏ »ı¼º
+	// ì†Œì¼“ ìƒì„±
 	SOCKET listen_sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (listen_sock == INVALID_SOCKET) err_quit("socket()");
 
 	int opt_val = TRUE;
 	setsockopt(listen_sock, IPPROTO_TCP, TCP_NODELAY, (const char*)&opt_val, sizeof(opt_val));
 
+ SendEnemy
 
+=======
+ main
 	// bind()
 	struct sockaddr_in serveraddr;
 	memset(&serveraddr, 0, sizeof(serveraddr));
@@ -474,7 +490,7 @@ int main(int argc, char* argv[])
 		}
 
 
-		// Á¢¼ÓÇÑ Å¬¶óÀÌ¾ğÆ® Á¤º¸ Ãâ·Â
+		// ì ‘ì†í•œ í´ë¼ì´ì–¸íŠ¸ ì •ë³´ ì¶œë ¥
 		char addr[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
 		clientinfo* info = new clientinfo;
@@ -493,14 +509,14 @@ int main(int argc, char* argv[])
 		size_t filesize;
 		int len;
 
-		// Å¬¶óÀÌ¾ğÆ® Á¤º¸ ¾ò±â
+		// í´ë¼ì´ì–¸íŠ¸ ì •ë³´ ì–»ê¸°
 		addrlen = sizeof(clientaddr);
 		getpeername(client_sock, (struct sockaddr*)&clientaddr, &addrlen);
 		inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
 
 
 		
-		// ½º·¹µå »ı¼º
+		// ìŠ¤ë ˆë“œ ìƒì„±
 		if (countid <= 0)
 			hThread = CreateThread(NULL, 0, ProcessClient,
 				(LPVOID)info, 0, NULL);
@@ -540,15 +556,19 @@ int main(int argc, char* argv[])
 		LeaveCriticalSection(&cs);
 		Sleep(200);*/	
 	}
+ SendEnemy
 
-	isRunning = false; // ¼­¹ö Á¾·á ÇÃ·¡±× ¼³Á¤
-	WaitForSingleObject(hEnemyThread, INFINITE); // ½º·¹µå Á¾·á ´ë±â
+	isRunning = false; // ì„œë²„ ì¢…ë£Œ í”Œë˜ê·¸ ì„¤ì •
+	WaitForSingleObject(hEnemyThread, INFINITE); // ìŠ¤ë ˆë“œ ì¢…ë£Œ ëŒ€ê¸°
 	CloseHandle(hEnemyThread);
 
-	// ¼ÒÄÏ ´İ±â
+	
+ main
+
+	// ì†Œì¼“ ë‹«ê¸°
 	closesocket(listen_sock);
 	DeleteCriticalSection(&cs);
-	// À©¼Ó Á¾·á
+	// ìœˆì† ì¢…ë£Œ
 	WSACleanup();
 	return 0;
 }
