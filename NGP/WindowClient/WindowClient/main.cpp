@@ -493,7 +493,7 @@ void RecvEnemy(GameManager& gameManager, SOCKET& sock)
     }
     else if (retval == 0)
     {
-        cerr << "Connection closed by server." << endl;
+        cerr << "Connection closed by server." << endl; 
         return;
     }
 

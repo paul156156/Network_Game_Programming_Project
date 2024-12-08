@@ -1,4 +1,4 @@
-/*** 여기서부터 이 책의 모든 예제에서 공통으로 포함하여 사용하는 코드이다. ***/
+﻿/*** 여기서부터 이 책의 모든 예제에서 공통으로 포함하여 사용하는 코드이다. ***/
 
 #define _CRT_SECURE_NO_WARNINGS // 구형 C 함수 사용 시 경고 끄기
 #define _WINSOCK_DEPRECATED_NO_WARNINGS // 구형 소켓 API 사용 시 경고 끄기
@@ -14,7 +14,6 @@
 #include <vector>
 #include <queue>
 #include <chrono>
-#include <time.h>
 
 #include <random>
 
@@ -78,7 +77,7 @@ HANDLE gamestart = NULL;
 HANDLE PlayerInfoSend = NULL;
 HANDLE semaphore;
 bool clientReady[2] = { false, false };
-clock_t Tstart, Tend;
+
 
 struct BulletData { int x, y; bool destroy, send; };
 struct PlayerSock {
@@ -273,8 +272,8 @@ DWORD WINAPI EnemySenderThread(LPVOID arg)
 
 		if (!isGameRunning) continue; // 게임이 진행 중이 아니면 건너뜀
 
-		auto currentTime = std::chrono::steady_clock::now();
-		auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastSentTime);
+		auto currentTime = chrono::steady_clock::now();
+		auto elapsedTime = chrono::duration_cast<chrono::milliseconds>(currentTime - lastSentTime);
 		// 적 좌표 생성
 		int xy[2];
 
@@ -438,6 +437,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 int main(int argc, char* argv[])
 {
 	int retval;
+	cout << "한글출력 테스트" << endl;
 
 	// 윈속 초기화
 	WSADATA wsa;
