@@ -232,6 +232,10 @@ void IsPlayerDead(PlayerSock* PS)
 		cout << "플레이어 사망" << endl;
 		PS->dead = true;
 	}
+	else
+	{
+		cout << "플레이어 생존" << endl;
+	}
 		
 }
 void SendPlayerDead(PlayerSock* send_PS, PlayerSock* recv_PS)

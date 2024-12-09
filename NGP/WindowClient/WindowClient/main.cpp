@@ -1,4 +1,4 @@
-#pragma once 
+﻿#pragma once 
 #include "sockH.h"
 #include <windows.h>
 #include <gdiplus.h>
@@ -58,7 +58,7 @@ void PlayerMove(Fighter& player, SOCKET& sock);
 void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock);
 void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock);
 void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager);
-void IsPlayerDead(bool _dead);
+void IsPlayerDead(GameManager& gameManager);
 void RecvEnemy(GameManager& gameManager, SOCKET& sock);
 void SendGameStart(SOCKET sock);
 void RecvPlayerDead(GameManager& gameManager);
@@ -209,7 +209,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             cout << "SendPlayerBullet" << endl;
             RecvPlayerBullet(sock, *gameManager);
             cout << "RecvPlayerBullet" << endl;
-            IsPlayerDead(gameManager->GetPlayerDead()); 
+            IsPlayerDead(*gameManager);
             cout << "IsPlayerDead" << endl;
             RecvPlayerDead(*gameManager);
 
@@ -562,10 +562,13 @@ void InitSocket()
 
 }
 
-void IsPlayerDead(bool _dead)
+void IsPlayerDead(GameManager& gameManager)
 {
     int retval;
-    bool dead = _dead;
+    bool dead = false;
+    if (!gameManager.GetPlayer())
+        dead = true;
+  
 
     if (sock == INVALID_SOCKET) {
         MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
@@ -596,46 +599,13 @@ void RecvPlayerDead(GameManager& gameManager)
         return;
     }
 
+    
 
     if (dead)
     {
         gameManager.SetAnotherPlayerDead(true);
+        cout << "플레이어2 사망" << endl;
     }
-}
-
-
-DWORD WINAPI PlayerThread(LPVOID arg)
-{
-    while (1)
-    {    
-        cout << "sendmoveReady" << endl;
-        PlayerMove(*gameManager->GetPlayer(), sock);
-        cout << "sendmove" << endl;
-        recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
-        cout << "recv_PlayerMove" << endl;
-        SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
-        cout << "SendPlayerBullet" << endl;
-        RecvPlayerBullet(sock, *gameManager);
-        cout << "RecvPlayerBullet" << endl;
-        IsPlayerDead(gameManager->GetPlayerDead());
-        cout << "IsPlayerDead" << endl;
-        RecvEnemy(*gameManager, sock);
-        cout << "RecvEnemy" << endl;
-    }
-
-    return 0;
-}
-
-
-DWORD WINAPI DeadThread(LPVOID arg)
-{
-    while (1)
-    {
-        EnterCriticalSection(&cs);
-        IsPlayerDead(gameManager->GetPlayerDead());
-        cout << "playerdead" << endl;
-        LeaveCriticalSection(&cs);
-    }
-
-    return 0;
+    else
+        cout << "플레이어2 생존" << endl;
 }
