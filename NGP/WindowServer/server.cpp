@@ -229,6 +229,27 @@ void IsPlayerDead(PlayerSock* PS)
 		cout << "플레이어 사망" << endl;
 }
 
+void SendClientID(PlayerSock* PS, int clientId) {
+	int len = sizeof(clientId); // 전송할 데이터의 크기 계산
+
+	// 데이터 길이 전송
+	int retval = send(PS->client_sock, (char*)&len, sizeof(len), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send() 데이터 길이");
+		return;
+	}
+
+	// 클라이언트 ID 전송
+	retval = send(PS->client_sock, (char*)&clientId, len, 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send() 클라이언트 ID");
+		return;
+	}
+
+	// 전송 성공 로그
+	cout << "클라이언트 ID 전송 완료: 클라이언트 ID=" << clientId << endl;
+}
+
 void RecvGameStart(PlayerSock* PS, int clientId) {
 	bool isGameStarted = false;
 	int retval = recv(PS->client_sock, (char*)&isGameStarted, sizeof(isGameStarted), MSG_WAITALL);
@@ -355,6 +376,9 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		WSACleanup();
 		return 0;
 	}
+
+	// 클라이언트 ID 전송
+	SendClientID(&PS[clientId], clientId);
 
 	// Game Start 메시지 수신 대기
 	RecvGameStart(&PS[clientId], clientId);

@@ -15,6 +15,7 @@ public:
     const int PLAYER_START_X = 225;
     const int PLAYER_START_Y = 700;
     const int BACKGROUND_SPEED = 4;
+    int playerID;
 
     GameManager(int width, int height);
     ~GameManager();
@@ -35,6 +36,8 @@ public:
     void SetPlayer2Bullets(std::vector<Bullet*>& newBullets) { Player2bullets = newBullets; }
     void SetEnemies(std::vector<Enemy*>& newEnemies) { Enemies = newEnemies; }
     void SetPlayerDead(bool _dead) { playerdead = _dead; }
+
+    void SetPlayerID(int id) { playerID = id; }
 
     void Initialize();
     void CreatePlayer(HWND hWnd);
