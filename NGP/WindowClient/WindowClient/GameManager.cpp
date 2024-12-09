@@ -234,7 +234,7 @@ void GameManager::HandleCollisions(HWND hWnd)
 
 
     //플레이어2
-    if (anotherplayerdead)
+    if (anotherplayerFighter)
     {
         for (auto bullet : Enemybullets)
         {
