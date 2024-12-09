@@ -85,6 +85,7 @@ struct PlayerSock {
 	vector<BulletData> BulletVector;
 	int x = 0, y = 0;
 	bool isGameStarted = false;
+	bool dead = false;
 };
 
 PlayerSock PS[2];
@@ -225,8 +226,30 @@ void IsPlayerDead(PlayerSock* PS)
 		return;
 	}
 
+
 	if (dead)
+	{
 		cout << "플레이어 사망" << endl;
+		PS->dead = true;
+	}
+		
+}
+void SendPlayerDead(PlayerSock* send_PS, PlayerSock* recv_PS)
+{
+	int retval;
+	bool dead = send_PS->dead;
+
+	if (recv_PS->client_sock == INVALID_SOCKET) {
+		MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
+		return;
+	}
+	retval = send(recv_PS->client_sock, (char*)&dead, sizeof(dead), 0);
+
+	if (retval == SOCKET_ERROR)
+	{
+		err_display("send()");
+		return;
+	}
 }
 
 void RecvGameStart(PlayerSock* PS, int clientId) {
@@ -365,6 +388,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	while (1)
 	{
 		int xy[2];
+		int len = 0;
 		//Sleep(1);
 		//cout << "start" << endl;
 		retval = recv(client_sock, (char*)&len, sizeof(int), MSG_WAITALL);
@@ -379,6 +403,8 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		retval = recv(client_sock, (char*)xy, len, MSG_WAITALL);
 		if (retval == SOCKET_ERROR)
 		{
+			int error_code = WSAGetLastError();
+			cout << "Error: recv() failed with error code " << error_code << std::endl;
 			err_display("recv()");
 			break;
 		}
@@ -416,7 +442,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
 		//cout << "bulsend" << endl;
 		IsPlayerDead(&PS[clientId]);
-
+		SendPlayerDead(&PS[clientId], &PS[(clientId + 1) % 2]);
 		cout << "playerinfo send 완료" << endl;
 
 		
@@ -437,8 +463,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 int main(int argc, char* argv[])
 {
 	int retval;
-	cout << "한글출력 테스트" << endl;
-
+	
 	// 윈속 초기화
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
@@ -502,7 +527,6 @@ int main(int argc, char* argv[])
 		char* filename;
 		size_t total_recvdata = 0;
 		size_t filesize;
-		int len;
 
 		// 클라이언트 정보 얻기
 		addrlen = sizeof(clientaddr);
@@ -540,7 +564,6 @@ int main(int argc, char* argv[])
 	system("cls");
 	while (1)
 	{
-		int len;
 
 		COORD Pos;
 

@@ -61,6 +61,7 @@ void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager);
 void IsPlayerDead(bool _dead);
 void RecvEnemy(GameManager& gameManager, SOCKET& sock);
 void SendGameStart(SOCKET sock);
+void RecvPlayerDead(GameManager& gameManager);
 void InitSocket();
 DWORD WINAPI PlayerThread(LPVOID arg);
 
@@ -185,19 +186,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             gameManager->Update(hWnd, wParam);
 
             // 플레이어의 생명이 0인지 확인
-            if (gameManager->GetPlayer()->GetLives() <= 0)
-            {
-                gameManager->SetPlayerDead(true);
-                gameStarted = false;
-                paused = true;
-                ShowGameOverMenu(hWnd); // 메뉴 표시
+            if (gameManager->GetPlayer() != nullptr)
+            {          
+                if (gameManager->GetPlayer()->GetLives() <= 0)
+                {
+                    delete gameManager->GetPlayer();
+                    gameManager->SetPlayer(nullptr); // 삭제 후 nullptr로 설정
+                }
+               
+                //gameStarted = false;
+                //paused = true;
+                //ShowGameOverMenu(hWnd); // 메뉴 표시
             }
 
             // 서버 좌표 수신 및 적 생성
             cout << "sendmoveReady" << endl;
-
-
-
             PlayerMove(*gameManager->GetPlayer(), sock);
             cout << "sendmove" << endl;
             recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
@@ -206,10 +209,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
             cout << "SendPlayerBullet" << endl;
             RecvPlayerBullet(sock, *gameManager);
             cout << "RecvPlayerBullet" << endl;
-            IsPlayerDead(gameManager->GetPlayerDead());
+            IsPlayerDead(gameManager->GetPlayerDead()); 
             cout << "IsPlayerDead" << endl;
+            RecvPlayerDead(*gameManager);
+
             RecvEnemy(*gameManager, sock);
             cout << "RecvEnemy" << endl;
+
         }
 
         InvalidateRect(hWnd, NULL, FALSE); // 화면 갱신 요청
@@ -326,9 +332,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 struct CS_MOVE_PLAYER { Fighter& player; };
 void PlayerMove(Fighter& player, SOCKET& sock)
 {
-    int xy[2];
-    xy[0] = player.GetX();
-    xy[1] = player.GetY();
+    int xy[2] = { 0, };
+    if (&player != nullptr)
+    {
+        xy[0] = player.GetX();
+        xy[1] = player.GetY();
+    }
+    else
+    {
+        xy[0] = -100;
+        xy[1] = -100;
+    }
+   
     cout << xy[0] << " " << xy[1] << endl;
     int retval, len;
 
@@ -564,28 +579,49 @@ void IsPlayerDead(bool _dead)
         return;
     }
 }
+void RecvPlayerDead(GameManager& gameManager)
+{
+    int retval;
+    bool dead = false;
 
+    if (sock == INVALID_SOCKET) {
+        MessageBoxA(NULL, "유효하지 않은 소켓", "오류", MB_OK | MB_ICONERROR);
+        return;
+    }
+    retval = recv(sock, (char*)&dead, sizeof(dead), 0);
+
+    if (retval == SOCKET_ERROR)
+    {
+        err_display("recv()");
+        return;
+    }
+
+
+    if (dead)
+    {
+        gameManager.SetAnotherPlayerDead(true);
+    }
+}
 
 
 DWORD WINAPI PlayerThread(LPVOID arg)
 {
     while (1)
-    {
-       
-        //cout << "start" << endl;
+    {    
+        cout << "sendmoveReady" << endl;
         PlayerMove(*gameManager->GetPlayer(), sock);
-        //cout << "playermove" << endl;
+        cout << "sendmove" << endl;
         recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
-        //cout << "recvplayermove" << endl;
+        cout << "recv_PlayerMove" << endl;
         SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
-        //cout << "sendplayerbul" << endl;
+        cout << "SendPlayerBullet" << endl;
         RecvPlayerBullet(sock, *gameManager);
-        //cout << "recvplayermovebul" << endl;
+        cout << "RecvPlayerBullet" << endl;
         IsPlayerDead(gameManager->GetPlayerDead());
-        //cout << "playerdead" << endl;
-       
+        cout << "IsPlayerDead" << endl;
+        RecvEnemy(*gameManager, sock);
+        cout << "RecvEnemy" << endl;
     }
-  
 
     return 0;
 }

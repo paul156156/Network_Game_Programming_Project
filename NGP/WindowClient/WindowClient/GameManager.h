@@ -35,6 +35,7 @@ public:
     void SetPlayer2Bullets(std::vector<Bullet*>& newBullets) { Player2bullets = newBullets; }
     void SetEnemies(std::vector<Enemy*>& newEnemies) { Enemies = newEnemies; }
     void SetPlayerDead(bool _dead) { playerdead = _dead; }
+    void SetAnotherPlayerDead(bool _dead) { anotherplayerdead = _dead; }
 
     void Initialize();
     void CreatePlayer(HWND hWnd);
