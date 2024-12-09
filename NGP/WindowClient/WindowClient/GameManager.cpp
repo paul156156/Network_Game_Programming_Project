@@ -186,72 +186,91 @@ void GameManager::UpdateBullets()
 
 void GameManager::HandleCollisions(HWND hWnd)
 {
-    if (!playerFighter) return;
-
-    for (auto bullet : Enemybullets)
+    //플레이어1
+    if (playerFighter)
     {
-        if (bullet->GetDirection() == 1 &&
-            CheckCollision(playerFighter->GetX(), playerFighter->GetY(), playerFighter->GetWidth(), playerFighter->GetHeight(),
-                bullet->GetX(), bullet->GetY(), bullet->GetWidth(), bullet->GetHeight()))
+        for (auto bullet : Enemybullets)
         {
-            playerFighter->TakeDamage();
-            bullet->Destroy();
+            if (bullet->GetDirection() == 1 &&
+                CheckCollision(playerFighter->GetX(), playerFighter->GetY(), playerFighter->GetWidth(), playerFighter->GetHeight(),
+                    bullet->GetX(), bullet->GetY(), bullet->GetWidth(), bullet->GetHeight()))
+            {
+                playerFighter->TakeDamage();
+                bullet->Destroy();
+            }
         }
 
-        if (bullet->GetDirection() == 1 &&
-            CheckCollision(anotherplayerFighter->GetX(), anotherplayerFighter->GetY(), anotherplayerFighter->GetWidth(), anotherplayerFighter->GetHeight(),
-                bullet->GetX(), bullet->GetY(), bullet->GetWidth(), bullet->GetHeight()))
+
+
+        for (auto enemy : Enemies)
         {
-            anotherplayerFighter->TakeDamage();
-            bullet->Destroy();
+            //player1 총알 충돌
+            for (auto bullet : Player1bullets)
+            {
+                if (bullet->GetDirection() == -1 &&
+                    CheckCollision(enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight(),
+                        bullet->GetX(), bullet->GetY(), bullet->GetWidth(), bullet->GetHeight()))
+                {
+                    enemy->TakeDamage();
+                    bullet->Destroy();
+                    if (enemy->IsDestroyed()) score += 10;
+                }
+            }
+           
+
+            // 적과 플레이어1 충돌
+            if (CheckCollision(playerFighter->GetX(), playerFighter->GetY(), playerFighter->GetWidth(), playerFighter->GetHeight(),
+                enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight()))
+            {
+                playerFighter->TakeDamage();
+                if (playerFighter->GetLives() <= 0)
+                {
+                    delete playerFighter;
+                }
+            }
         }
     }
 
-    for (auto enemy : Enemies)
+
+
+    //플레이어2
+    if (anotherplayerdead)
     {
-        //player1 총알 충돌
-        for (auto bullet : Player1bullets)
+        for (auto bullet : Enemybullets)
         {
-            if (bullet->GetDirection() == -1 &&
-                CheckCollision(enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight(),
+            if (bullet->GetDirection() == 1 &&
+                CheckCollision(anotherplayerFighter->GetX(), anotherplayerFighter->GetY(), anotherplayerFighter->GetWidth(), anotherplayerFighter->GetHeight(),
                     bullet->GetX(), bullet->GetY(), bullet->GetWidth(), bullet->GetHeight()))
             {
-                enemy->TakeDamage();
+                anotherplayerFighter->TakeDamage();
                 bullet->Destroy();
-                if (enemy->IsDestroyed()) score += 10;
-            }
-        }
-        //player2 총알 충돌
-        for (auto bullet : Player2bullets)
-        {
-            if (bullet->GetDirection() == -1 &&
-                CheckCollision(enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight(),
-                    bullet->GetX(), bullet->GetY(), bullet->GetWidth(), bullet->GetHeight()))
-            {
-                enemy->TakeDamage();
-                bullet->Destroy();
-                if (enemy->IsDestroyed()) score += 10;
             }
         }
 
-        // 적과 플레이어1 충돌
-        if (CheckCollision(playerFighter->GetX(), playerFighter->GetY(), playerFighter->GetWidth(), playerFighter->GetHeight(),
-            enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight()))
+        for (auto enemy : Enemies)
         {
-            playerFighter->TakeDamage();
-            if (playerFighter->GetLives() <= 0)
+            //player2 총알 충돌
+            for (auto bullet : Player2bullets)
             {
-                delete playerFighter;
+                if (bullet->GetDirection() == -1 &&
+                    CheckCollision(enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight(),
+                        bullet->GetX(), bullet->GetY(), bullet->GetWidth(), bullet->GetHeight()))
+                {
+                    enemy->TakeDamage();
+                    bullet->Destroy();
+                    if (enemy->IsDestroyed()) score += 10;
+                }
             }
-        }
-        // 적과 플레이어2 충돌
-        if (CheckCollision(anotherplayerFighter->GetX(), anotherplayerFighter->GetY(), anotherplayerFighter->GetWidth(), anotherplayerFighter->GetHeight(),
-            enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight()))
-        {
-            anotherplayerFighter->TakeDamage();
-            if (anotherplayerFighter->GetLives() <= 0)
+
+            // 적과 플레이어2 충돌
+            if (CheckCollision(anotherplayerFighter->GetX(), anotherplayerFighter->GetY(), anotherplayerFighter->GetWidth(), anotherplayerFighter->GetHeight(),
+                enemy->GetX(), enemy->GetY(), enemy->GetWidth(), enemy->GetHeight()))
             {
-                delete anotherplayerFighter;
+                anotherplayerFighter->TakeDamage();
+                if (anotherplayerFighter->GetLives() <= 0)
+                {
+                    delete anotherplayerFighter;
+                }
             }
         }
     }
