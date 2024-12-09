@@ -354,7 +354,7 @@ DWORD WINAPI EnemySenderThread(LPVOID arg)
 	return 0;
 }
 
-DWORD WINAPI ProcessClient(LPVOID arg)
+DWORD WINAPI PlayerInfo(LPVOID arg)
 {
 	clientinfo* Info = (clientinfo*)arg;
 	int clientId = Info->id;
@@ -541,10 +541,10 @@ int main(int argc, char* argv[])
 		
 		// 스레드 생성
 		if (countid <= 0)
-			hThread = CreateThread(NULL, 0, ProcessClient,
+			hThread = CreateThread(NULL, 0, PlayerInfo,
 				(LPVOID)info, 0, NULL);
 		else
-			hThread = CreateThread(NULL, 0, ProcessClient,
+			hThread = CreateThread(NULL, 0, PlayerInfo,
 				(LPVOID)info, 0, NULL);
 		
 		
