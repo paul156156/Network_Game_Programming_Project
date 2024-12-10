@@ -29,7 +29,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 GameManager* gameManager = nullptr;
 #define SERVERPORT 9000
 #define BUFSIZE    512
-char* SERVERIP = (char*)"192.168.219.103";
+char* SERVERIP = (char*)"127.0.0.1";
 char buf[BUFSIZE + 1];
 
 SOCKET sock;
@@ -37,17 +37,13 @@ CRITICAL_SECTION cs;
 const int winWidth = 700;
 const int winHeight = 800;
 
-const int PLAYER_START_X = 225;
-const int PLAYER_START_Y = 700;
 const int BACKGROUND_SPEED = 4;
 int BACKGROUND_Y = 0;
 
 ULONG_PTR gdiplusToken;
 
 Image* lifeImage = nullptr;
-//int score = 0;
-//int specialAttackCount = 0;
-//int lastThreshold = 0;
+
 bool gameStarted = false;
 bool showMenu = false;
 bool musicPlaying = true;
@@ -63,6 +59,10 @@ void RecvEnemy(GameManager& gameManager, SOCKET& sock);
 void SendGameStart(SOCKET sock);
 void RecvPlayerDead(GameManager& gameManager);
 void InitSocket();
+
+void RecvInitData(SOCKET sock);
+bool getInitData = false;
+
 DWORD WINAPI PlayerThread(LPVOID arg);
 
 Image* LoadPNG(LPCWSTR filePath)
@@ -163,6 +163,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
     switch (iMessage)
     {
     case WM_CREATE:
+
         if (!gameManager)
         {
             gameManager = new GameManager(winWidth, winHeight);
@@ -197,6 +198,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
                 //gameStarted = false;
                 //paused = true;
                 //ShowGameOverMenu(hWnd); // 메뉴 표시
+            }
+
+            if (getInitData == false)
+            {
+                RecvInitData(sock);
+                cout << "recvInitData" << endl;
+				getInitData = true;
             }
 
             // 서버 좌표 수신 및 적 생성
@@ -527,6 +535,37 @@ void SendGameStart(SOCKET sock) {
         return;
     }
     cout << "Game Start message sent to server." << endl;
+}
+
+void RecvInitData(SOCKET sock) {
+    int clientID;
+    int retval;
+
+    // 데이터 길이 수신
+    int len;
+    retval = recv(sock, (char*)&len, sizeof(len), MSG_WAITALL);
+    if (retval == SOCKET_ERROR) {
+        err_quit("recv() - 데이터 길이");
+    }
+    if (retval == 0) {
+        cout << "서버 연결이 종료되었습니다." << endl;
+        return;
+    }
+
+    // 클라이언트 ID 수신
+    retval = recv(sock, (char*)&clientID, len, MSG_WAITALL);
+    if (retval == SOCKET_ERROR) {
+        err_quit("recv() - 클라이언트 ID");
+    }
+    if (retval == 0) {
+        cout << "서버 연결이 종료되었습니다." << endl;
+        return;
+    }
+
+    cout << "서버로부터 클라이언트 ID를 수신했습니다: " << clientID << endl;
+
+	// 클라이언트 ID 저장
+	gameManager->SetPlayerID(clientID);
 }
 
 void InitSocket()
