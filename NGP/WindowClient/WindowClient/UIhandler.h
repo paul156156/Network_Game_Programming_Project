@@ -14,8 +14,8 @@ void ShowMenu(HWND hWnd);
 void HideMenu(HWND hWnd);
 
 // 게임 상태 제어 함수
-void HandleSinglePlay(HWND hWnd);
-void HandleMultiPlay(HWND hWnd);
+//void HandleSinglePlay(HWND hWnd);
+//void HandleMultiPlay(HWND hWnd);
 void HandleResume(HWND hWnd, bool& paused);
 void HandleStart(HWND hWnd, bool& gameStarted, bool& showMenu);
 void HandleRestart(
@@ -25,6 +25,7 @@ void HandleRestart(
     std::vector<Bullet*>& Player2bullets,
     std::vector<Enemy*>& enemies,
     Fighter*& playerFighter,
+	Fighter*& anotherplayerFighter,
     int& score,
     int& specialAttackCount,
     bool& gameStarted,

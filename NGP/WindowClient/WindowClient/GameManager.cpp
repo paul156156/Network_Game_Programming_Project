@@ -114,10 +114,6 @@ void GameManager::Update(HWND hWnd, WPARAM wParam)
         HandleCollisions(hWnd);
         UpdateSpecialAttackCount();
     }
-    //else if (wParam == 2) // 적 생성 타이머
-    //{
-        //CreateEnemy();
-    //}
 }
 
 void GameManager::UpdatePlayer(HWND hWnd)

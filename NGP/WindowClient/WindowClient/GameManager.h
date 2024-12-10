@@ -21,7 +21,7 @@ public:
     ~GameManager();
 
     Fighter*& GetPlayer() { return playerFighter; }
-    Fighter*& GetPlayerAnother() { return anotherplayerFighter; }
+    Fighter*& GetAnotherPlayer() { return anotherplayerFighter; }
     std::vector<Bullet*>& GetEnemyBullets() { return Enemybullets; }
     std::vector<Bullet*>& GetPlayer1Bullets() { return Player1bullets; }
     std::vector<Bullet*>& GetPlayer2Bullets() { return Player2bullets; }
@@ -29,14 +29,17 @@ public:
     int& GetScore() { return score; }
     int& GetSpecialAttackCount() { return specialAttackCount; }
     bool GetPlayerDead() { return playerdead; }
+	bool GetAnotherPlayerDead() { return anotherplayerdead; }
 
     void SetPlayer(Fighter* newPlayer) { playerFighter = newPlayer; }
+	void SetAnotherPlayer(Fighter* newPlayer) { anotherplayerFighter = newPlayer; }
     void SetEnemyBullets(std::vector<Bullet*>& newBullets) { Enemybullets = newBullets; }
     void SetPlayer1Bullets(std::vector<Bullet*>& newBullets) { Player1bullets = newBullets; }
     void SetPlayer2Bullets(std::vector<Bullet*>& newBullets) { Player2bullets = newBullets; }
     void SetEnemies(std::vector<Enemy*>& newEnemies) { Enemies = newEnemies; }
-    void SetPlayerDead(bool _dead) { playerdead = _dead; }
-    void SetAnotherPlayerDead(bool _dead) { anotherplayerdead = _dead; }
+
+    void SetPlayerDead(bool dead) { playerdead = dead; }
+    void SetAnotherPlayerDead(bool dead) { anotherplayerdead = dead; }
 
     void SetPlayerID(int id) { playerID = id; }
 

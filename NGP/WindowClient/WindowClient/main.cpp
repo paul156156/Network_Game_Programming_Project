@@ -48,22 +48,23 @@ bool gameStarted = false;
 bool showMenu = false;
 bool musicPlaying = true;
 bool paused = false;
-bool gameOver = false;
+bool isGameOver = false;
 
-void PlayerMove(Fighter& player, SOCKET& sock);
-void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock);
-void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock);
-void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager);
-void IsPlayerDead(GameManager& gameManager);
+void SendPlayerPos(Fighter& player, SOCKET& sock);
+void RecvPlayerPos(Fighter& anotherplayerFighter, SOCKET& sock);
+void SendBulletPos(vector<Bullet*>& _bullets, SOCKET& sock);
+void RecvBulletPos(GameManager& gameManager, SOCKET& sock);
 void RecvEnemy(GameManager& gameManager, SOCKET& sock);
 void SendGameStart(SOCKET sock);
+void SendGameOver(bool isGameOver, SOCKET sock);
+void SendPlayerDead(GameManager& gameManager);
 void RecvPlayerDead(GameManager& gameManager);
 void InitSocket();
 
 void RecvInitData(SOCKET sock);
 bool getInitData = false;
 
-DWORD WINAPI PlayerThread(LPVOID arg);
+//DWORD WINAPI PlayerThread(LPVOID arg);
 
 Image* LoadPNG(LPCWSTR filePath)
 {
@@ -128,8 +129,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
     // 배경 음악 재생
     PlayBGM(L"resource\\sound\\terran.mp3");
 
-    SetTimer(hWnd, 1, 50, NULL);
-    SetTimer(hWnd, 2, 1000, NULL);
+    SetTimer(hWnd, 1, 16, NULL);
+    //SetTimer(hWnd, 2, 1000, NULL);
 
     InitSocket();
     InitializeCriticalSection(&cs);
@@ -143,7 +144,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
     }
 
     KillTimer(hWnd, 1);
-    KillTimer(hWnd, 2);
+    //KillTimer(hWnd, 2);
     GdiplusShutdown(gdiplusToken);
 
     delete gameManager;
@@ -183,47 +184,61 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         {
             BACKGROUND_Y += BACKGROUND_SPEED;
 
+            if (getInitData == false)
+            {
+                RecvInitData(sock);
+                cout << "recvInitData" << endl;
+                getInitData = true;
+            }
 
             gameManager->Update(hWnd, wParam);
 
             // 플레이어의 생명이 0인지 확인
             if (gameManager->GetPlayer() != nullptr)
-            {          
+            {
                 if (gameManager->GetPlayer()->GetLives() <= 0)
                 {
                     delete gameManager->GetPlayer();
                     gameManager->SetPlayer(nullptr); // 삭제 후 nullptr로 설정
+                    gameManager->SetPlayerDead(true);
                 }
-               
-                //gameStarted = false;
-                //paused = true;
-                //ShowGameOverMenu(hWnd); // 메뉴 표시
             }
 
-            if (getInitData == false)
-            {
-                RecvInitData(sock);
-                cout << "recvInitData" << endl;
-				getInitData = true;
-            }
+            //if (gameManager->GetAnotherPlayer() != nullptr)
+            //{
+            //    if (gameManager->GetAnotherPlayer()->GetLives() <= 0)
+            //    {
+            //        delete gameManager->GetAnotherPlayer();
+            //        gameManager->SetAnotherPlayer(nullptr); // 삭제 후 nullptr로 설정
+            //        gameManager->SetAnotherPlayerDead(true);
+            //    }
+            //}
+
+            if (gameManager->GetPlayerDead() && gameManager->GetAnotherPlayerDead())
+			{
+                cout << "둘다 사망" << endl;
+				gameStarted = false;
+                paused = true;
+				isGameOver = true;
+				ShowGameOverMenu(hWnd); // 메뉴 표시
+			}
 
             // 서버 좌표 수신 및 적 생성
-            cout << "sendmoveReady" << endl;
-            PlayerMove(*gameManager->GetPlayer(), sock);
-            cout << "sendmove" << endl;
-            recv_PlayerMove(*gameManager->GetPlayerAnother(), sock);
-            cout << "recv_PlayerMove" << endl;
-            SendPlayerBullet(gameManager->GetPlayer1Bullets(), sock);
-            cout << "SendPlayerBullet" << endl;
-            RecvPlayerBullet(sock, *gameManager);
-            cout << "RecvPlayerBullet" << endl;
-            IsPlayerDead(*gameManager);
-            cout << "IsPlayerDead" << endl;
+            //cout << "sendmoveReady" << endl;
+            SendPlayerPos(*gameManager->GetPlayer(), sock);
+            //cout << "sendmove" << endl;
+            RecvPlayerPos(*gameManager->GetAnotherPlayer(), sock);
+            //cout << "recv_PlayerMove" << endl;
+            SendBulletPos(gameManager->GetPlayer1Bullets(), sock);
+            //cout << "SendPlayerBullet" << endl;
+            RecvBulletPos(*gameManager, sock);
+            //cout << "RecvPlayerBullet" << endl;
+            SendPlayerDead(*gameManager);
+            //cout << "SendPlayerDead" << endl;
             RecvPlayerDead(*gameManager);
-
+			//cout << "RecvPlayerDead" << endl;
             RecvEnemy(*gameManager, sock);
-            cout << "RecvEnemy" << endl;
-
+            //cout << "RecvEnemy" << endl;
         }
 
         InvalidateRect(hWnd, NULL, FALSE); // 화면 갱신 요청
@@ -235,14 +250,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         case 2: HandleStart(hWnd, gameStarted, showMenu); 
             SendGameStart(sock);
             break;
-        case 3: HandleRestart(hWnd, gameManager->GetEnemyBullets(), gameManager->GetPlayer1Bullets(), gameManager->GetPlayer2Bullets(), gameManager->GetEnemies(), gameManager->GetPlayer(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), gameStarted, showMenu, paused, gameOver, winWidth, winHeight);
+        case 3: HandleRestart(hWnd, gameManager->GetEnemyBullets(), gameManager->GetPlayer1Bullets(), gameManager->GetPlayer2Bullets(), gameManager->GetEnemies(), gameManager->GetPlayer(), gameManager->GetAnotherPlayer(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), gameStarted, showMenu, paused, isGameOver, winWidth, winHeight);
             BACKGROUND_Y = 0;
             gameManager->SetPlayerDead(false);
+			gameManager->SetAnotherPlayerDead(false);
+			//SendGameStart(sock);
             break;
         case 4: HandleToggleMusic(musicPlaying); break;
         case 5: HandleQuit(); break;
-        case 6: HandleSinglePlay(hWnd); break;
-        case 7: HandleMultiPlay(hWnd); break;
+        //case 6: HandleSinglePlay(hWnd); break;
+        //case 7: HandleMultiPlay(hWnd); break;
         }
         InvalidateRect(hWnd, NULL, FALSE);
         break;
@@ -299,7 +316,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
                 if (paused)
                 {
                     KillTimer(hWnd, 1);
-                    KillTimer(hWnd, 2);
+                    //KillTimer(hWnd, 2);
 
                     // 메뉴 보이기
                     ShowMenu(hWnd);
@@ -308,7 +325,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
                 {
                     // 게임 다시 시작
                     SetTimer(hWnd, 1, 50, NULL);
-                    SetTimer(hWnd, 2, 1000, NULL);
+                    //SetTimer(hWnd, 2, 1000, NULL);
 
                     // 메뉴 숨기기
                     HideMenu(hWnd);
@@ -333,12 +350,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-
-
-
-
 struct CS_MOVE_PLAYER { Fighter& player; };
-void PlayerMove(Fighter& player, SOCKET& sock)
+
+void SendPlayerPos(Fighter& player, SOCKET& sock)
 {
     int xy[2] = { 0, };
     if (&player != nullptr)
@@ -352,7 +366,7 @@ void PlayerMove(Fighter& player, SOCKET& sock)
         xy[1] = -100;
     }
    
-    cout << xy[0] << " " << xy[1] << endl;
+    //cout << xy[0] << " " << xy[1] << endl;
     int retval, len;
 
     len = sizeof(xy);
@@ -377,7 +391,8 @@ void PlayerMove(Fighter& player, SOCKET& sock)
         return;
     }
 }
-void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock)
+
+void RecvPlayerPos(Fighter& anotherplayerFighter, SOCKET& sock)
 {
     int xy[2];
     int retval, len;
@@ -403,8 +418,10 @@ void recv_PlayerMove(Fighter& anotherplayerFighter, SOCKET& sock)
     anotherplayerFighter.SetX(xy[0]);
     anotherplayerFighter.SetY(xy[1]);
 }
+
 struct BulletData { int x, y; bool destroy, send; };
-void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock)
+
+void SendBulletPos(vector<Bullet*>& _bullets, SOCKET& sock)
 {
     vector<BulletData> BD;
     for (auto bullet : _bullets)
@@ -444,7 +461,8 @@ void SendPlayerBullet(vector<Bullet*>& _bullets, SOCKET& sock)
     for (auto& bullet : _bullets)
         bullet->Send();
 }
-void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager)
+
+void RecvBulletPos(GameManager& gameManager, SOCKET& sock)
 {
     int retval, len, bulletcnt = 0;
 
@@ -476,7 +494,7 @@ void RecvPlayerBullet(SOCKET& sock, GameManager& gameManager)
         return;
 
     for (auto bullet : BD)
-        gameManager.GetPlayerAnother()->FireBullet(bullet.x, bullet.y, bulletcnt, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
+        gameManager.GetAnotherPlayer()->FireBullet(bullet.x, bullet.y, bulletcnt, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
 }
 
 void RecvEnemy(GameManager& gameManager, SOCKET& sock)
@@ -535,6 +553,15 @@ void SendGameStart(SOCKET sock) {
         return;
     }
     cout << "Game Start message sent to server." << endl;
+}
+
+void SendGameOver(bool isGameOver, SOCKET sock) {
+    int retval = send(sock, (char*)&isGameOver, sizeof(isGameOver), 0);
+    if (retval == SOCKET_ERROR) {
+        cerr << "Error sending GameOver: " << WSAGetLastError() << endl;
+        return;
+    }
+    cout << "GameOver message sent to server." << endl;
 }
 
 void RecvInitData(SOCKET sock) {
@@ -601,12 +628,15 @@ void InitSocket()
 
 }
 
-void IsPlayerDead(GameManager& gameManager)
+void SendPlayerDead(GameManager& gameManager)
 {
     int retval;
     bool dead = false;
-    if (!gameManager.GetPlayer())
+    if (gameManager.GetPlayerDead())
+    {
+        cout << "플레이어1 사망" << endl;
         dead = true;
+    }
   
 
     if (sock == INVALID_SOCKET) {
@@ -620,7 +650,9 @@ void IsPlayerDead(GameManager& gameManager)
         err_display("send()");
         return;
     }
+
 }
+
 void RecvPlayerDead(GameManager& gameManager)
 {
     int retval;
@@ -638,13 +670,11 @@ void RecvPlayerDead(GameManager& gameManager)
         return;
     }
 
-    
-
     if (dead)
     {
         gameManager.SetAnotherPlayerDead(true);
         cout << "플레이어2 사망" << endl;
     }
-    else
-        cout << "플레이어2 생존" << endl;
+    //else
+    //    cout << "플레이어2 생존" << endl;
 }

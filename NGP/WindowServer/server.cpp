@@ -118,6 +118,7 @@ char* recv_filename(SOCKET client_sock, char* buf)
 	buf[len] = '\0'; // 파일명을 문자열로 변환
 	return buf;
 }
+
 void recv_filesize(SOCKET client_sock, size_t& filesize)
 {
 	int retval;
@@ -131,6 +132,7 @@ void recv_filesize(SOCKET client_sock, size_t& filesize)
 	else if (retval == 0)
 		return;
 }
+
 void SendPlayerBullet(PlayerSock* send_PS, PlayerSock* recv_PS)
 {
 	vector<BulletData> BD;
@@ -209,7 +211,8 @@ void RecvPlayerBullet(PlayerSock* PS)
 	}
 	LeaveCriticalSection(&cs);
 }
-void IsPlayerDead(PlayerSock* PS)
+
+void RecvPlayerDead(PlayerSock* PS)
 {
 	int retval;
 	bool dead = false;
@@ -234,10 +237,11 @@ void IsPlayerDead(PlayerSock* PS)
 	}
 	else
 	{
-		cout << "플레이어 생존" << endl;
+		//cout << "플레이어 생존" << endl;
 	}
 		
 }
+
 void SendPlayerDead(PlayerSock* send_PS, PlayerSock* recv_PS)
 {
 	int retval;
@@ -297,13 +301,28 @@ void RecvGameStart(PlayerSock* PS, int clientId) {
 	}
 }
 
+void RecvGameOver(PlayerSock* PS, int clientId) {
+	bool isGameOver = false;
+	int retval = recv(PS->client_sock, (char*)&isGameOver, sizeof(isGameOver), MSG_WAITALL);
+	if (retval == SOCKET_ERROR) {
+		err_display("recv() GameOver");
+		return;
+	}
+
+	if (isGameOver) {
+		//isGameRunning = false; // 게임 실행 상태를 false로 설정
+		//ResetEvent(gamestart); // 게임 시작 이벤트를 리셋
+		cout << "Game over received. Stopping the game!" << endl;
+	}
+}
+
 struct clientinfo
 {
 	int id;
 	SOCKET client;
 };
 
-DWORD WINAPI EnemySenderThread(LPVOID arg)
+DWORD WINAPI Enemy(LPVOID arg)
 {
 	//PlayerSock* PS = (PlayerSock*)arg; // 클라이언트 소켓 배열
 	const int clientCount = 2; // 최대 클라이언트 수
@@ -325,10 +344,10 @@ DWORD WINAPI EnemySenderThread(LPVOID arg)
 		// 적 좌표 생성
 		int xy[2];
 
-		if (elapsedTime.count() >= 1000) // 1초 이상 경과 시
+		if (elapsedTime.count() >= 3000) // 3초 이상 경과 시
 		{
 			xy[0] = distrib(gen); // 무작위 x 좌표 생성
-			xy[1] = distrib(gen); // 무작위 y 좌표 생성
+			xy[1] = distrib(gen) - 50; // 무작위 y 좌표 생성
 			lastSentTime = currentTime; // 마지막 전송 시간 갱신
 		}
 		else
@@ -369,13 +388,13 @@ DWORD WINAPI EnemySenderThread(LPVOID arg)
 			}
 			
 		}
-		cout << "enemy send 완료" << endl;
+		//cout << "enemy send 완료" << endl;
 	}
 
 	return 0;
 }
 
-DWORD WINAPI PlayerInfo(LPVOID arg)
+DWORD WINAPI Client(LPVOID arg)
 {
 	clientinfo* Info = (clientinfo*)arg;
 	int clientId = Info->id;
@@ -409,6 +428,8 @@ DWORD WINAPI PlayerInfo(LPVOID arg)
 
 	// Game Start 메시지 수신 대기
 	RecvGameStart(&PS[clientId], clientId);
+
+	//RecvGameOver(&PS[clientId], clientId);
 
 	//WaitForSingleObject(gamestart, INFINITE); // 게임 시작 대기
 	
@@ -469,10 +490,9 @@ DWORD WINAPI PlayerInfo(LPVOID arg)
 		//cout << "bulrecv" << endl;
 		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
 		//cout << "bulsend" << endl;
-		IsPlayerDead(&PS[clientId]);
+		RecvPlayerDead(&PS[clientId]);
 		SendPlayerDead(&PS[clientId], &PS[(clientId + 1) % 2]);
-		cout << "playerinfo send 완료" << endl;
-
+		//cout << "playerinfo send 완료" << endl;
 		
 		ReleaseSemaphore(semaphore, 1, NULL);
 
@@ -565,10 +585,10 @@ int main(int argc, char* argv[])
 		
 		// 스레드 생성
 		if (countid <= 0)
-			hThread = CreateThread(NULL, 0, PlayerInfo,
+			hThread = CreateThread(NULL, 0, Client,
 				(LPVOID)info, 0, NULL);
 		else
-			hThread = CreateThread(NULL, 0, PlayerInfo,
+			hThread = CreateThread(NULL, 0, Client,
 				(LPVOID)info, 0, NULL);
 		
 		
@@ -581,15 +601,15 @@ int main(int argc, char* argv[])
 		//else { CloseHandle(hThread); }
 	}
 
-	HANDLE hEnemyThread = CreateThread(NULL, 0, EnemySenderThread, (LPVOID)PS, 0, NULL);
+	HANDLE hEnemyThread = CreateThread(NULL, 0, Enemy, (LPVOID)PS, 0, NULL);
 	if (hEnemyThread == NULL) {
 		cerr << "Failed to create enemy sender thread." << endl;
 		return 1;
 	}
 
-	SetEvent(gamestart);
+	//SetEvent(gamestart);
 	
-	system("cls");
+	//system("cls");
 	while (1)
 	{
 
