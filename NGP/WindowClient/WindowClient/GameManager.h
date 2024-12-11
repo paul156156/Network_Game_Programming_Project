@@ -47,6 +47,10 @@ public:
     void SetClientID(int id) { ClientID = id; }
     int GetClientID() { return ClientID; };
 
+	void SetScore(int x) { score = x; }
+	void SetSpecialAttackCount(int x) { specialAttackCount = x; }
+    void SetLives(int x) { playerFighter->SetLives(x); anotherplayerFighter->SetLives(x); }
+
     void Initialize();
     void CreatePlayer(HWND hWnd);
     void Update(HWND hWnd, WPARAM wParam);

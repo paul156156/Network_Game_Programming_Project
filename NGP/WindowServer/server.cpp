@@ -1,6 +1,4 @@
-﻿/*** 여기서부터 이 책의 모든 예제에서 공통으로 포함하여 사용하는 코드이다. ***/
-
-#define _CRT_SECURE_NO_WARNINGS // 구형 C 함수 사용 시 경고 끄기
+﻿#define _CRT_SECURE_NO_WARNINGS // 구형 C 함수 사용 시 경고 끄기
 #define _WINSOCK_DEPRECATED_NO_WARNINGS // 구형 소켓 API 사용 시 경고 끄기
 
 #include <iostream>
@@ -23,7 +21,8 @@ std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_int_distribution<> distrib(1, 400); 
 bool isRunning = true;
-bool isGameRunning = false; // 모든 클라이언트가 준비되었는지 여부
+bool isGameRunning = false; 
+bool allPlayersDead = false;
 
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)
@@ -65,9 +64,6 @@ void err_display(int errcode)
 	LocalFree(lpMsgBuf);
 }
 
-/*** 여기까지가 이 책의 모든 예제에서 공통으로 포함하여 사용하는 코드이다. ***/
-/*** 2장 이후의 예제들은 Common.h를 포함하는 방식으로 이 코드를 사용한다.  ***/
-
 using namespace std;
 #define SERVERPORT 9000
 #define BUFSIZE    512
@@ -77,7 +73,7 @@ HANDLE gamestart = NULL;
 HANDLE PlayerInfoSend = NULL;
 HANDLE semaphore;
 bool clientReady[2] = { false, false };
-
+bool restartRequested[2] = { false, false }; // 각 클라이언트의 재시작 요청 상태
 
 struct BulletData { int x, y; bool destroy, send; };
 struct PlayerSock {
@@ -235,10 +231,6 @@ void RecvPlayerDead(PlayerSock* PS)
 		cout << "플레이어 사망" << endl;
 		PS->dead = true;
 	}
-	else
-	{
-		//cout << "플레이어 생존" << endl;
-	}
 		
 }
 
@@ -301,18 +293,55 @@ void RecvGameStart(PlayerSock* PS, int clientId) {
 	}
 }
 
-void RecvGameOver(PlayerSock* PS, int clientId) {
-	bool isGameOver = false;
-	int retval = recv(PS->client_sock, (char*)&isGameOver, sizeof(isGameOver), MSG_WAITALL);
+void RecvGameRestart(PlayerSock* PS, int clientId) {
+	bool isGameRestarted = false;
+	int retval = recv(PS->client_sock, (char*)&isGameRestarted, sizeof(isGameRestarted), MSG_WAITALL);
 	if (retval == SOCKET_ERROR) {
-		err_display("recv() GameOver");
+		err_display("recv() GameRestart");
 		return;
 	}
 
-	if (isGameOver) {
-		//isGameRunning = false; // 게임 실행 상태를 false로 설정
-		//ResetEvent(gamestart); // 게임 시작 이벤트를 리셋
-		cout << "Game over received. Stopping the game!" << endl;
+	if (isGameRestarted) {
+		// 클라이언트 재시작 요청 상태 갱신
+		restartRequested[clientId] = true;
+		cout << "Client " << clientId << " 재시작 요청 완료" << endl;
+	}
+
+	// 모든 클라이언트가 재시작 요청을 했는지 확인
+	if (restartRequested[0] && restartRequested[1]) {
+		// 게임 상태 초기화
+		for (int i = 0; i < 2; i++) {
+			PS[i].dead = false;
+		}
+
+		// 재시작 요청 상태 초기화
+		restartRequested[0] = false;
+		restartRequested[1] = false;
+		cout << "게임 상태 리셋" << endl;
+
+		cout << "모든 클라이언트 준비완료. 게임 재시작" << endl;
+	}
+}
+
+void SendGameOver(PlayerSock* send_PS, PlayerSock* recv_PS) {
+	bool isGameOver = true; // 게임 종료 신호
+	if (recv_PS->client_sock == INVALID_SOCKET) {
+		cerr << "Invalid socket for GameOver message." << endl;
+		return;
+	}
+
+	int retval = send(recv_PS->client_sock, (char*)&isGameOver, sizeof(isGameOver), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send() GameOver");
+		return;
+	}
+
+	cout << "GameOver signal sent to client." << endl;
+}
+
+void allPlayersDeadCheck() {
+	if (PS[0].dead && PS[1].dead) {
+		allPlayersDead = true;
 	}
 }
 
@@ -335,14 +364,13 @@ DWORD WINAPI Enemy(LPVOID arg)
 		{
 			WaitForSingleObject(semaphore, INFINITE); // 세마포어 대기
 		}
-		//Sleep(1); // 1초마다 적 좌표 생성 및 전송
 
 		if (!isGameRunning) continue; // 게임이 진행 중이 아니면 건너뜀
 
 		auto currentTime = chrono::steady_clock::now();
 		auto elapsedTime = chrono::duration_cast<chrono::milliseconds>(currentTime - lastSentTime);
 		// 적 좌표 생성
-		int xy[2];
+		int xy[2] = {};
 
 		if (elapsedTime.count() >= 3000) // 3초 이상 경과 시
 		{
@@ -356,9 +384,6 @@ DWORD WINAPI Enemy(LPVOID arg)
 			xy[1] = 0; // 무작위 y 좌표 생성
 		}
 		int len = sizeof(xy);
-
-		//cout << "Sending data length: " << len << " bytes" << endl;
-		//cout << "Generated enemy position: x=" << xy[0] << ", y=" << xy[1] << endl;
 
 		// 클라이언트들에게 좌표 전송
 		for (int i = 0; i < clientCount; i++)
@@ -383,12 +408,11 @@ DWORD WINAPI Enemy(LPVOID arg)
 					continue; // 오류 발생 시 해당 클라이언트 건너뜀
 				}
 
-				//cout << "Sent enemy position to client " << i
-				//	<< ": x=" << xy[0] << ", y=" << xy[1] << endl;
+				if (xy[0] != 0 && xy[1] != 0)
+					cout << "client: " << i << "에게 적 좌표 전송: x=" << xy[0] << ", y=" << xy[1] << endl;
 			}
 			
 		}
-		//cout << "enemy send 완료" << endl;
 	}
 
 	return 0;
@@ -427,19 +451,13 @@ DWORD WINAPI Client(LPVOID arg)
 	SendClientID(&PS[clientId], clientId);
 
 	// Game Start 메시지 수신 대기
-	RecvGameStart(&PS[clientId], clientId);
-
-	//RecvGameOver(&PS[clientId], clientId);
-
-	//WaitForSingleObject(gamestart, INFINITE); // 게임 시작 대기
-	
+	RecvGameStart(&PS[clientId], clientId);	
 
 	while (1)
 	{
 		int xy[2];
 		int len = 0;
-		//Sleep(1);
-		//cout << "start" << endl;
+
 		retval = recv(client_sock, (char*)&len, sizeof(int), MSG_WAITALL);
 		if (retval == SOCKET_ERROR)
 		{
@@ -459,11 +477,8 @@ DWORD WINAPI Client(LPVOID arg)
 		}
 		else if (retval == 0)
 			break;
-		//cout << "moverecv" << endl;
 		PS[(clientId + 1) % 2].x = xy[0];
-		PS[(clientId + 1) % 2].y = xy[1];
-		
-
+		PS[(clientId + 1) % 2].y = xy[1];		
 
 		SOCKET another_client_sock = PS[(clientId + 1) % 2].client_sock;
 	
@@ -481,30 +496,22 @@ DWORD WINAPI Client(LPVOID arg)
 		}
 
 		
-
 		//cout << "movesend" << endl;
-
-
-
 		RecvPlayerBullet(&PS[clientId]);
 		//cout << "bulrecv" << endl;
 		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
 		//cout << "bulsend" << endl;
-		RecvPlayerDead(&PS[clientId]);
 		SendPlayerDead(&PS[clientId], &PS[(clientId + 1) % 2]);
+		RecvPlayerDead(&PS[clientId]);
 		//cout << "playerinfo send 완료" << endl;
-		
-		ReleaseSemaphore(semaphore, 1, NULL);
 
-		//cout << "dead" << endl;
-		//cout << "본인 클라이언트:" << clientId << "\t" << "보내는 클라이언트:" << (clientId + 1) % 2 << endl;
+		ReleaseSemaphore(semaphore, 1, NULL);
 	}
 
 
-
 	// 소켓 닫기
-	//closesocket(client_sock);
-	//delete Info;
+	closesocket(client_sock);
+	delete Info;
 	return 0;
 }
 
@@ -596,9 +603,6 @@ int main(int argc, char* argv[])
 		countid++;
 		if (countid >= 2)
 			break;
-
-		//if (hThread == NULL) { closesocket(client_sock); delete info; }
-		//else { CloseHandle(hThread); }
 	}
 
 	HANDLE hEnemyThread = CreateThread(NULL, 0, Enemy, (LPVOID)PS, 0, NULL);
@@ -607,20 +611,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	//SetEvent(gamestart);
-	
-	//system("cls");
 	while (1)
 	{
-
 		COORD Pos;
-
-		/*EnterCriticalSection(&cs);
-		system("cls");
-		cout << "player1 x:" << PS[0].x << "\tplayer1 y:" << PS[0].y << endl;
-		cout << "player2 x:" << PS[1].x << "\tplayer2 y:" << PS[1].y << endl;
-		LeaveCriticalSection(&cs);
-		Sleep(200);*/	
 	}
 
 

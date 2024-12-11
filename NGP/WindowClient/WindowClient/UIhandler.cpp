@@ -1,6 +1,7 @@
 #include <windows.h>
 #include "Fighter.h"
 #include "Enemy.h"
+#include "GameManager.h"
 
 #pragma comment(lib, "winmm.lib")
 
@@ -60,7 +61,6 @@ void HideMenu(HWND hWnd)
 
 void ShowInitialUIState(HWND hWnd)
 {
-    // 초기 상태에서 Resume, Start, Restart, Toggle Music, Quit 버튼 숨기기
     //ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE);
     ShowWindow(GetDlgItem(hWnd, 2), SW_SHOW);
     //ShowWindow(GetDlgItem(hWnd, 3), SW_SHOW);
@@ -78,32 +78,9 @@ void ShowGameOverMenu(HWND hWnd)
     ShowWindow(GetDlgItem(hWnd, 5), SW_SHOW); // Quit
 }
 
-//void HandleSinglePlay(HWND hWnd)
-//{
-//    ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE);
-//    ShowWindow(GetDlgItem(hWnd, 2), SW_SHOW);
-//    ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE);
-//    ShowWindow(GetDlgItem(hWnd, 4), SW_SHOW);
-//    ShowWindow(GetDlgItem(hWnd, 5), SW_SHOW);
-//    ShowWindow(GetDlgItem(hWnd, 6), SW_HIDE);
-//    ShowWindow(GetDlgItem(hWnd, 7), SW_HIDE);
-//}
-//
-//void HandleMultiPlay(HWND hWnd)
-//{
-//    ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE);
-//    ShowWindow(GetDlgItem(hWnd, 2), SW_SHOW);
-//    ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE);
-//    ShowWindow(GetDlgItem(hWnd, 4), SW_SHOW);
-//    ShowWindow(GetDlgItem(hWnd, 5), SW_SHOW);
-//    ShowWindow(GetDlgItem(hWnd, 6), SW_HIDE);
-//    ShowWindow(GetDlgItem(hWnd, 7), SW_HIDE);
-//}
-
 void HandleResume(HWND hWnd, bool& paused) {
     paused = false;
     SetTimer(hWnd, 1, 50, NULL);
-    SetTimer(hWnd, 2, 1000, NULL);
     ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE); // Resume
     ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE); // Restart
     ShowWindow(GetDlgItem(hWnd, 4), SW_HIDE); // Toggle Music
@@ -117,61 +94,21 @@ void HandleStart(HWND hWnd, bool& gameStarted, bool& showMenu) {
     ShowWindow(GetDlgItem(hWnd, 4), SW_HIDE); // Toggle Music
     ShowWindow(GetDlgItem(hWnd, 5), SW_HIDE); // Quit
     SetTimer(hWnd, 1, 50, NULL);
-    SetTimer(hWnd, 2, 1000, NULL); // 1초마다 새로운 적 생성
 }
 
-void HandleRestart(HWND hWnd, std::vector<Bullet*>& Enemybullets, std::vector<Bullet*>& Player1bullets, std::vector<Bullet*>& Player2bullets, std::vector<Enemy*>& enemies, Fighter*& playerFighter, Fighter*& anotherplayerFighter, int& score, int& specialAttackCount, bool& gameStarted, bool& showMenu, bool& paused, bool& gameOver, int winWidth, int winHeight, int x, int y, int clientID) {
-
+void HandleRestart(HWND hWnd, GameManager* gameManager, bool& gameStarted, bool& showMenu, bool& paused, bool& gameOver, int winWidth, int winHeight)
+{
     // 게임 상태 초기화
+    gameManager->SetScore(0);
+    gameManager->SetSpecialAttackCount(0);
+
     gameStarted = false;
     showMenu = false;
-    score = 0;
-    specialAttackCount = 0;
     paused = false;
     gameOver = false;
 
-    // 총알 초기화
-    for (auto bullet : Enemybullets) {
-        delete bullet;
-    }
-    Enemybullets.clear();
-    for (auto bullet : Player1bullets) {
-        delete bullet;
-    }
-    Player1bullets.clear();
-    for (auto bullet : Player2bullets) {
-        delete bullet;
-    }
-    Player2bullets.clear();
-
-    // 적 초기화
-    for (auto enemy : enemies) {
-        delete enemy;
-    }
-    enemies.clear();
-
-    if(clientID == 0)
-    {
-        // 플레이어 초기화
-        delete playerFighter;
-        playerFighter = new Fighter(x, y, L"resource\\image\\fighter.png");
-        playerFighter->SetBoundary(0, 0, winWidth, winHeight);
-
-        delete anotherplayerFighter;
-        anotherplayerFighter = new Fighter(x + 50, y, L"resource\\image\\fighter_2.png");
-        anotherplayerFighter->SetBoundary(0, 0, winWidth, winHeight);
-    }
-    else
-    {
-		// 플레이어 초기화
-		delete playerFighter;
-		playerFighter = new Fighter(x + 50, y, L"resource\\image\\fighter_2.png");
-		playerFighter->SetBoundary(0, 0, winWidth, winHeight);
-
-		delete anotherplayerFighter;
-		anotherplayerFighter = new Fighter(x, y, L"resource\\image\\fighter.png");
-		anotherplayerFighter->SetBoundary(0, 0, winWidth, winHeight);
-    }
+	gameManager->Initialize();
+    gameManager->CreatePlayer(hWnd);
 
     ShowWindow(GetDlgItem(hWnd, 2), SW_HIDE); // Start
     ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE); // Restart
@@ -180,7 +117,6 @@ void HandleRestart(HWND hWnd, std::vector<Bullet*>& Enemybullets, std::vector<Bu
     ShowWindow(GetDlgItem(hWnd, 1), SW_HIDE); // Resume
 
     SetTimer(hWnd, 1, 50, NULL);
-    SetTimer(hWnd, 2, 1000, NULL); // 1초마다 새로운 적 생성
     gameStarted = true;
 }
 

@@ -5,6 +5,7 @@
 #include "Bullet.h"
 #include "Enemy.h"
 #include "Fighter.h"
+#include "GameManager.h"
 
 // UI 버튼 관리 함수
 void CreateGameButtons(HWND hWnd, int winWidth, int winHeight, HINSTANCE hInstance);
@@ -14,29 +15,17 @@ void ShowMenu(HWND hWnd);
 void HideMenu(HWND hWnd);
 
 // 게임 상태 제어 함수
-//void HandleSinglePlay(HWND hWnd);
-//void HandleMultiPlay(HWND hWnd);
 void HandleResume(HWND hWnd, bool& paused);
 void HandleStart(HWND hWnd, bool& gameStarted, bool& showMenu);
 void HandleRestart(
     HWND hWnd,
-    std::vector<Bullet*>& Enemybullets,
-    std::vector<Bullet*>& Player1bullets,
-    std::vector<Bullet*>& Player2bullets,
-    std::vector<Enemy*>& enemies,
-    Fighter*& playerFighter,
-    Fighter*& anotherplayerFighter,
-    int& score,
-    int& specialAttackCount,
+	GameManager* gameManager,
     bool& gameStarted,
     bool& showMenu,
     bool& paused,
     bool& gameOver,
     int winWidth,
-    int winHeight,
-    int x,
-    int y,
-    int clientID
+    int winHeight
 );
 void HandleToggleMusic(bool& musicPlaying);
 void HandleQuit();

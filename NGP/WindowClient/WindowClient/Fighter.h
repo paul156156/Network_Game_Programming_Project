@@ -28,6 +28,7 @@ public:
     void FireBullet(std::vector<Bullet*>& bullets, int score, int& specialAttackCount, int winWidth);
     void FireBullet(int x, int y, int cnt, std::vector<Bullet*>& Player2bullets, int score, int& specialAttackCount, int winWidth);
 
+	void SetLives(int _lives) { lives = _lives; }
 private:
     int x, y;
     int lives;
