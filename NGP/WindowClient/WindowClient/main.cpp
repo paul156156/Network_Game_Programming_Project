@@ -53,20 +53,17 @@ bool musicPlaying = true;
 bool paused = false;
 bool isGameOver = false;
 
-void SendPlayerPos(Fighter& player, SOCKET& sock);
-void RecvPlayerPos(Fighter& anotherplayerFighter, SOCKET& sock);
-void SendBulletPos(vector<Bullet*>& _bullets, SOCKET& sock);
-void RecvBulletPos(GameManager& gameManager, SOCKET& sock);
-void RecvEnemy(GameManager& gameManager, SOCKET& sock);
+void SendPlayerInfo(Fighter& player, SOCKET& sock);
+void RecvPlayerInfo(Fighter& anotherplayerFighter, SOCKET& sock);
+void SendBulletInfo(vector<Bullet*>& _bullets, SOCKET& sock);
+void RecvBulletInfo(GameManager& gameManager, SOCKET& sock);
+void RecvEnemyInfo(GameManager& gameManager, SOCKET& sock);
 void SendGameStart(SOCKET sock);
-void SendGameRestart(SOCKET sock);
-void SendGameOver (SOCKET sock);
-void RecvGameOver(SOCKET sock);
+void RecvClientID(SOCKET sock);
 void SendPlayerDead(GameManager& gameManager);
 void RecvPlayerDead(GameManager& gameManager);
 void InitSocket();
 
-void RecvClientID(SOCKET sock);
 bool getClientID = false;
 
 Image* LoadPNG(LPCWSTR filePath)
@@ -222,19 +219,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
             // 서버 좌표 수신 및 적 생성
             //cout << "sendmoveReady" << endl;
-            SendPlayerPos(*gameManager->GetPlayer(), sock);
+            SendPlayerInfo(*gameManager->GetPlayer(), sock);
             //cout << "sendmove" << endl;
-            RecvPlayerPos(*gameManager->GetAnotherPlayer(), sock);
+            RecvPlayerInfo(*gameManager->GetAnotherPlayer(), sock);
             //cout << "recv_PlayerMove" << endl;
-            SendBulletPos(gameManager->GetPlayer1Bullets(), sock);
+            SendBulletInfo(gameManager->GetPlayer1Bullets(), sock);
             //cout << "SendPlayerBullet" << endl;
-            RecvBulletPos(*gameManager, sock);
+            RecvBulletInfo(*gameManager, sock);
             //cout << "RecvPlayerBullet" << endl;
             SendPlayerDead(*gameManager);
             //cout << "SendPlayerDead" << endl;
             RecvPlayerDead(*gameManager);
 			//cout << "RecvPlayerDead" << endl;
-            RecvEnemy(*gameManager, sock);
+            RecvEnemyInfo(*gameManager, sock);
             //cout << "RecvEnemy" << endl;
         }
 
@@ -344,7 +341,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
 struct CS_MOVE_PLAYER { Fighter& player; };
 
-void SendPlayerPos(Fighter& player, SOCKET& sock)
+void SendPlayerInfo(Fighter& player, SOCKET& sock)
 {
     int xy[2] = { 0, };
     if (&player != nullptr)
@@ -384,7 +381,7 @@ void SendPlayerPos(Fighter& player, SOCKET& sock)
     }
 }
 
-void RecvPlayerPos(Fighter& anotherplayerFighter, SOCKET& sock)
+void RecvPlayerInfo(Fighter& anotherplayerFighter, SOCKET& sock)
 {
     int xy[2];
     int retval, len;
@@ -413,7 +410,7 @@ void RecvPlayerPos(Fighter& anotherplayerFighter, SOCKET& sock)
 
 struct BulletData { int x, y; bool destroy, send; };
 
-void SendBulletPos(vector<Bullet*>& _bullets, SOCKET& sock)
+void SendBulletInfo(vector<Bullet*>& _bullets, SOCKET& sock)
 {
     vector<BulletData> BD;
     for (auto bullet : _bullets)
@@ -454,7 +451,7 @@ void SendBulletPos(vector<Bullet*>& _bullets, SOCKET& sock)
         bullet->Send();
 }
 
-void RecvBulletPos(GameManager& gameManager, SOCKET& sock)
+void RecvBulletInfo(GameManager& gameManager, SOCKET& sock)
 {
     int retval, len, bulletcnt = 0;
 
@@ -489,7 +486,7 @@ void RecvBulletPos(GameManager& gameManager, SOCKET& sock)
         gameManager.GetAnotherPlayer()->FireBullet(bullet.x, bullet.y, bulletcnt, gameManager.GetPlayer2Bullets(), gameManager.GetScore(), gameManager.GetSpecialAttackCount(), 700);
 }
 
-void RecvEnemy(GameManager& gameManager, SOCKET& sock)
+void RecvEnemyInfo(GameManager& gameManager, SOCKET& sock)
 {
     int retval, len = 0;
     int xy[2] = { 0, 0 };
@@ -545,40 +542,6 @@ void SendGameStart(SOCKET sock) {
         return;
     }
     cout << "서버로 게임 시작 전송" << endl;
-}
-
-void SendGameRestart(SOCKET sock) {
-    bool isGameRestarted = true;
-    int retval = send(sock, (char*)&isGameRestarted, sizeof(isGameRestarted), 0);
-    if (retval == SOCKET_ERROR) {
-        cerr << "Failed to send GAME_RESTART message: " << WSAGetLastError() << endl;
-        return;
-    }
-    cout << "서버로 재시작 전송" << endl;
-}
-
-void SendGameOver(SOCKET sock) {
-	bool isGameOver = true;
-    int retval = send(sock, (char*)&isGameOver, sizeof(isGameOver), 0);
-    if (retval == SOCKET_ERROR) {
-        cerr << "Error sending GameOver: " << WSAGetLastError() << endl;
-        return;
-    }
-    cout << "서버로 게임 오버 전송" << endl;
-}
-
-void RecvGameOver(SOCKET sock) {
-    bool isGameOver = false;
-    int retval = recv(sock, (char*)&isGameOver, sizeof(isGameOver), MSG_WAITALL);
-    if (retval == SOCKET_ERROR) {
-        cerr << "Error receiving GameOver signal: " << WSAGetLastError() << endl;
-        return;
-    }
-
-    if (isGameOver) {
-        cout << "게임 오버 신호 받음. 클라이언트 종료" << endl;
-        PostQuitMessage(0); // 클라이언트 종료
-    }
 }
 
 void RecvClientID(SOCKET sock) {

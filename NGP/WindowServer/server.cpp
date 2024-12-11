@@ -129,7 +129,7 @@ void recv_filesize(SOCKET client_sock, size_t& filesize)
 		return;
 }
 
-void SendPlayerBullet(PlayerSock* send_PS, PlayerSock* recv_PS)
+void SendBulletInfo(PlayerSock* send_PS, PlayerSock* recv_PS)
 {
 	vector<BulletData> BD;
 	
@@ -169,7 +169,7 @@ void SendPlayerBullet(PlayerSock* send_PS, PlayerSock* recv_PS)
 	send_PS->BulletVector.clear();
 }
 
-void RecvPlayerBullet(PlayerSock* PS)
+void RecvBulletInfo(PlayerSock* PS)
 {
 	int retval, len, bulletcnt;
 	
@@ -293,65 +293,13 @@ void RecvGameStart(PlayerSock* PS, int clientId) {
 	}
 }
 
-void RecvGameRestart(PlayerSock* PS, int clientId) {
-	bool isGameRestarted = false;
-	int retval = recv(PS->client_sock, (char*)&isGameRestarted, sizeof(isGameRestarted), MSG_WAITALL);
-	if (retval == SOCKET_ERROR) {
-		err_display("recv() GameRestart");
-		return;
-	}
-
-	if (isGameRestarted) {
-		// 클라이언트 재시작 요청 상태 갱신
-		restartRequested[clientId] = true;
-		cout << "Client " << clientId << " 재시작 요청 완료" << endl;
-	}
-
-	// 모든 클라이언트가 재시작 요청을 했는지 확인
-	if (restartRequested[0] && restartRequested[1]) {
-		// 게임 상태 초기화
-		for (int i = 0; i < 2; i++) {
-			PS[i].dead = false;
-		}
-
-		// 재시작 요청 상태 초기화
-		restartRequested[0] = false;
-		restartRequested[1] = false;
-		cout << "게임 상태 리셋" << endl;
-
-		cout << "모든 클라이언트 준비완료. 게임 재시작" << endl;
-	}
-}
-
-void SendGameOver(PlayerSock* send_PS, PlayerSock* recv_PS) {
-	bool isGameOver = true; // 게임 종료 신호
-	if (recv_PS->client_sock == INVALID_SOCKET) {
-		cerr << "Invalid socket for GameOver message." << endl;
-		return;
-	}
-
-	int retval = send(recv_PS->client_sock, (char*)&isGameOver, sizeof(isGameOver), 0);
-	if (retval == SOCKET_ERROR) {
-		err_display("send() GameOver");
-		return;
-	}
-
-	cout << "GameOver signal sent to client." << endl;
-}
-
-void allPlayersDeadCheck() {
-	if (PS[0].dead && PS[1].dead) {
-		allPlayersDead = true;
-	}
-}
-
 struct clientinfo
 {
 	int id;
 	SOCKET client;
 };
 
-DWORD WINAPI Enemy(LPVOID arg)
+DWORD WINAPI EnemyThread(LPVOID arg)
 {
 	//PlayerSock* PS = (PlayerSock*)arg; // 클라이언트 소켓 배열
 	const int clientCount = 2; // 최대 클라이언트 수
@@ -418,7 +366,7 @@ DWORD WINAPI Enemy(LPVOID arg)
 	return 0;
 }
 
-DWORD WINAPI Client(LPVOID arg)
+DWORD WINAPI ClientThread(LPVOID arg)
 {
 	clientinfo* Info = (clientinfo*)arg;
 	int clientId = Info->id;
@@ -497,9 +445,9 @@ DWORD WINAPI Client(LPVOID arg)
 
 		
 		//cout << "movesend" << endl;
-		RecvPlayerBullet(&PS[clientId]);
+		RecvBulletInfo(&PS[clientId]);
 		//cout << "bulrecv" << endl;
-		SendPlayerBullet(&PS[clientId], &PS[(clientId + 1) % 2]);
+		SendBulletInfo(&PS[clientId], &PS[(clientId + 1) % 2]);
 		//cout << "bulsend" << endl;
 		SendPlayerDead(&PS[clientId], &PS[(clientId + 1) % 2]);
 		RecvPlayerDead(&PS[clientId]);
@@ -592,11 +540,9 @@ int main(int argc, char* argv[])
 		
 		// 스레드 생성
 		if (countid <= 0)
-			hThread = CreateThread(NULL, 0, Client,
-				(LPVOID)info, 0, NULL);
+			hThread = CreateThread(NULL, 0, ClientThread, (LPVOID)info, 0, NULL);
 		else
-			hThread = CreateThread(NULL, 0, Client,
-				(LPVOID)info, 0, NULL);
+			hThread = CreateThread(NULL, 0, ClientThread, (LPVOID)info, 0, NULL);
 		
 		
 		
@@ -605,7 +551,7 @@ int main(int argc, char* argv[])
 			break;
 	}
 
-	HANDLE hEnemyThread = CreateThread(NULL, 0, Enemy, (LPVOID)PS, 0, NULL);
+	HANDLE hEnemyThread = CreateThread(NULL, 0, EnemyThread, (LPVOID)PS, 0, NULL);
 	if (hEnemyThread == NULL) {
 		cerr << "Failed to create enemy sender thread." << endl;
 		return 1;
