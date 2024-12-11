@@ -12,10 +12,10 @@ using namespace std;
 class GameManager
 {
 public:
-    const int PLAYER_START_X = 225;
-    const int PLAYER_START_Y = 700;
+    int PLAYER_START_X = GetInitPosX();
+    int PLAYER_START_Y = 700;
+
     const int BACKGROUND_SPEED = 4;
-    int playerID;
 
     GameManager(int width, int height);
     ~GameManager();
@@ -41,7 +41,11 @@ public:
     void SetPlayerDead(bool dead) { playerdead = dead; }
     void SetAnotherPlayerDead(bool dead) { anotherplayerdead = dead; }
 
-    void SetPlayerID(int id) { playerID = id; }
+	void SetInitPosX(int x) { PLAYER_START_X = x;}
+	int GetInitPosX() { return PLAYER_START_X; }
+
+    void SetClientID(int id) { ClientID = id; }
+    int GetClientID() { return ClientID; };
 
     void Initialize();
     void CreatePlayer(HWND hWnd);
@@ -59,7 +63,7 @@ private:
     int score;
     int specialAttackCount;
     int lastThreshold;
-
+    int ClientID;
 
     bool playerdead = false;
     bool anotherplayerdead = false;

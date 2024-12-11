@@ -25,7 +25,7 @@ void HandleRestart(
     std::vector<Bullet*>& Player2bullets,
     std::vector<Enemy*>& enemies,
     Fighter*& playerFighter,
-	Fighter*& anotherplayerFighter,
+    Fighter*& anotherplayerFighter,
     int& score,
     int& specialAttackCount,
     bool& gameStarted,
@@ -33,7 +33,10 @@ void HandleRestart(
     bool& paused,
     bool& gameOver,
     int winWidth,
-    int winHeight
+    int winHeight,
+    int x,
+    int y,
+    int clientID
 );
 void HandleToggleMusic(bool& musicPlaying);
 void HandleQuit();

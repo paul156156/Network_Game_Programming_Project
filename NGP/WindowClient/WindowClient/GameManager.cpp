@@ -65,18 +65,38 @@ void GameManager::CreatePlayer(HWND hWnd)
         anotherplayerFighter = nullptr; // 삭제 후 nullptr로 설정
     }
 
-    // 새 플레이어 객체 생성
-    playerFighter = new Fighter(PLAYER_START_X, PLAYER_START_Y, L"resource\\image\\fighter.png");
-    if (!playerFighter)
+    if(ClientID == 0)
     {
-        MessageBox(hWnd, L"Player fighter initialization failed!", L"Error", MB_OK);
-        PostQuitMessage(0);
+        // 새 플레이어 객체 생성
+        playerFighter = new Fighter(PLAYER_START_X, PLAYER_START_Y, L"resource\\image\\fighter.png");
+        if (!playerFighter)
+        {
+            MessageBox(hWnd, L"Player fighter initialization failed!", L"Error", MB_OK);
+            PostQuitMessage(0);
+        }
+        anotherplayerFighter = new Fighter(PLAYER_START_X + 50, PLAYER_START_Y, L"resource\\image\\fighter_2.png");
+        if (!anotherplayerFighter)
+        {
+            MessageBox(hWnd, L"Player fighter initialization failed!", L"Error", MB_OK);
+            PostQuitMessage(0);
+        }
     }
-    anotherplayerFighter = new Fighter(PLAYER_START_X + 100, PLAYER_START_Y, L"resource\\image\\fighter_2.png");
-    if (!anotherplayerFighter)
+    else
     {
-        MessageBox(hWnd, L"Player fighter initialization failed!", L"Error", MB_OK);
-        PostQuitMessage(0);
+        // 새 플레이어 객체 생성
+        playerFighter = new Fighter(PLAYER_START_X + 50, PLAYER_START_Y, L"resource\\image\\fighter_2.png");
+        if (!playerFighter)
+        {
+            MessageBox(hWnd, L"Player fighter initialization failed!", L"Error", MB_OK);
+            PostQuitMessage(0);
+        }
+        anotherplayerFighter = new Fighter(PLAYER_START_X, PLAYER_START_Y, L"resource\\image\\fighter.png");
+        if (!anotherplayerFighter)
+        {
+            MessageBox(hWnd, L"Player fighter initialization failed!", L"Error", MB_OK);
+            PostQuitMessage(0);
+        }
+
     }
 
     playerFighter->SetBoundary(0, 0, winWidth, winHeight);

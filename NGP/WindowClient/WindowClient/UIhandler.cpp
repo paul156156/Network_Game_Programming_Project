@@ -120,9 +120,7 @@ void HandleStart(HWND hWnd, bool& gameStarted, bool& showMenu) {
     SetTimer(hWnd, 2, 1000, NULL); // 1초마다 새로운 적 생성
 }
 
-void HandleRestart(HWND hWnd, std::vector<Bullet*>& Enemybullets, std::vector<Bullet*>& Player1bullets, std::vector<Bullet*>& Player2bullets, std::vector<Enemy*>& enemies, Fighter*& playerFighter, Fighter*& anotherplayerFighter, int& score, int& specialAttackCount, bool& gameStarted, bool& showMenu, bool& paused, bool& gameOver, int winWidth, int winHeight) {
-    const int PLAYER_START_X = 225;
-    const int PLAYER_START_Y = 700;
+void HandleRestart(HWND hWnd, std::vector<Bullet*>& Enemybullets, std::vector<Bullet*>& Player1bullets, std::vector<Bullet*>& Player2bullets, std::vector<Enemy*>& enemies, Fighter*& playerFighter, Fighter*& anotherplayerFighter, int& score, int& specialAttackCount, bool& gameStarted, bool& showMenu, bool& paused, bool& gameOver, int winWidth, int winHeight, int x, int y, int clientID) {
 
     // 게임 상태 초기화
     gameStarted = false;
@@ -152,14 +150,28 @@ void HandleRestart(HWND hWnd, std::vector<Bullet*>& Enemybullets, std::vector<Bu
     }
     enemies.clear();
 
-    // 플레이어 초기화
-    delete playerFighter;
-    playerFighter = new Fighter(PLAYER_START_X, PLAYER_START_Y, L"resource\\image\\fighter.png");
-    playerFighter->SetBoundary(0, 0, winWidth, winHeight);
+    if(clientID == 0)
+    {
+        // 플레이어 초기화
+        delete playerFighter;
+        playerFighter = new Fighter(x, y, L"resource\\image\\fighter.png");
+        playerFighter->SetBoundary(0, 0, winWidth, winHeight);
 
-	delete anotherplayerFighter;
-	anotherplayerFighter = new Fighter(PLAYER_START_X + 100, PLAYER_START_Y, L"resource\\image\\fighter_2.png");
-	anotherplayerFighter->SetBoundary(0, 0, winWidth, winHeight);
+        delete anotherplayerFighter;
+        anotherplayerFighter = new Fighter(x + 50, y, L"resource\\image\\fighter_2.png");
+        anotherplayerFighter->SetBoundary(0, 0, winWidth, winHeight);
+    }
+    else
+    {
+		// 플레이어 초기화
+		delete playerFighter;
+		playerFighter = new Fighter(x + 50, y, L"resource\\image\\fighter_2.png");
+		playerFighter->SetBoundary(0, 0, winWidth, winHeight);
+
+		delete anotherplayerFighter;
+		anotherplayerFighter = new Fighter(x, y, L"resource\\image\\fighter.png");
+		anotherplayerFighter->SetBoundary(0, 0, winWidth, winHeight);
+    }
 
     ShowWindow(GetDlgItem(hWnd, 2), SW_HIDE); // Start
     ShowWindow(GetDlgItem(hWnd, 3), SW_HIDE); // Restart

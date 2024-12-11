@@ -37,6 +37,9 @@ CRITICAL_SECTION cs;
 const int winWidth = 700;
 const int winHeight = 800;
 
+int PLAYER_START_X = 175;
+int PLAYER_START_Y = 700;
+
 const int BACKGROUND_SPEED = 4;
 int BACKGROUND_Y = 0;
 
@@ -61,10 +64,8 @@ void SendPlayerDead(GameManager& gameManager);
 void RecvPlayerDead(GameManager& gameManager);
 void InitSocket();
 
-void RecvInitData(SOCKET sock);
-bool getInitData = false;
-
-//DWORD WINAPI PlayerThread(LPVOID arg);
+void RecvClientID(SOCKET sock);
+bool getClientID = false;
 
 Image* LoadPNG(LPCWSTR filePath)
 {
@@ -169,7 +170,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         {
             gameManager = new GameManager(winWidth, winHeight);
         }
-        gameManager->CreatePlayer(hWnd);
+        //gameManager->CreatePlayer(hWnd);
 
         pBackgroundImage = LoadPNG(imagePath);
         lifeImage = LoadPNG(L"resource\\image\\life.png"); // 생명 수 이미지 로드
@@ -184,11 +185,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         {
             BACKGROUND_Y += BACKGROUND_SPEED;
 
-            if (getInitData == false)
+            if (getClientID == false)
             {
-                RecvInitData(sock);
-                cout << "recvInitData" << endl;
-                getInitData = true;
+                RecvClientID(sock);
+                cout << "ClientID: " << gameManager->GetClientID() << endl;
+                getClientID = true;
+
+                if (gameManager->GetClientID() == 0)
+                {
+					gameManager->SetInitPosX(175);
+				}
+                else
+                {
+                    gameManager->SetInitPosX(225);
+                }
+
+                gameManager->CreatePlayer(hWnd);
             }
 
             gameManager->Update(hWnd, wParam);
@@ -250,7 +262,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
         case 2: HandleStart(hWnd, gameStarted, showMenu); 
             SendGameStart(sock);
             break;
-        case 3: HandleRestart(hWnd, gameManager->GetEnemyBullets(), gameManager->GetPlayer1Bullets(), gameManager->GetPlayer2Bullets(), gameManager->GetEnemies(), gameManager->GetPlayer(), gameManager->GetAnotherPlayer(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), gameStarted, showMenu, paused, isGameOver, winWidth, winHeight);
+        case 3: HandleRestart(hWnd, gameManager->GetEnemyBullets(), gameManager->GetPlayer1Bullets(), gameManager->GetPlayer2Bullets(), gameManager->GetEnemies(), gameManager->GetPlayer(), gameManager->GetAnotherPlayer(), gameManager->GetScore(), gameManager->GetSpecialAttackCount(), gameStarted, showMenu, paused, isGameOver, winWidth, winHeight, PLAYER_START_X, PLAYER_START_Y, gameManager->GetClientID());
             BACKGROUND_Y = 0;
             gameManager->SetPlayerDead(false);
 			gameManager->SetAnotherPlayerDead(false);
@@ -564,7 +576,7 @@ void SendGameOver(bool isGameOver, SOCKET sock) {
     cout << "GameOver message sent to server." << endl;
 }
 
-void RecvInitData(SOCKET sock) {
+void RecvClientID(SOCKET sock) {
     int clientID;
     int retval;
 
@@ -592,7 +604,7 @@ void RecvInitData(SOCKET sock) {
     cout << "서버로부터 클라이언트 ID를 수신했습니다: " << clientID << endl;
 
 	// 클라이언트 ID 저장
-	gameManager->SetPlayerID(clientID);
+	gameManager->SetClientID(clientID);
 }
 
 void InitSocket()

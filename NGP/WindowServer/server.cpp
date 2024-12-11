@@ -291,11 +291,11 @@ void RecvGameStart(PlayerSock* PS, int clientId) {
 
 	PS->isGameStarted = isGameStarted;
 	clientReady[clientId] = isGameStarted; // 클라이언트 준비 상태 저장
-	cout << "Client " << clientId << " is ready: " << isGameStarted << endl;
+	cout << "Client " << clientId << " 준비 완료" << endl;
 
 	// 모든 클라이언트가 준비되었는지 확인
 	if (clientReady[0] && clientReady[1]) {
-		cout << "All clients are ready. Starting the game!" << endl;
+		cout << "모든 클라이언트 준비완료. 게임 시작" << endl;
 		SetEvent(gamestart); // 이벤트 신호 설정
 		isGameRunning = true; // 게임 시작
 	}
@@ -565,7 +565,7 @@ int main(int argc, char* argv[])
 		info->client = client_sock;
 		info->id = countid;
 
-		cout << "clientid:" << info->id << endl;
+		cout << "client id: " << info->id << "접속" << endl;
 
 
 		int retval;
