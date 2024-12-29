@@ -29,7 +29,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 GameManager* gameManager = nullptr;
 #define SERVERPORT 9000
 #define BUFSIZE    512
-char* SERVERIP = (char*)"127.0.0.1";
+char* SERVERIP = (char*)"192.168.100.34";
 char buf[BUFSIZE + 1];
 
 SOCKET sock;
